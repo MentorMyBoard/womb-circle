@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WOMB Circle — Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy:#191970; --navy-deep:#101046; --orange:#f99f1b; --orange-deep:#e08c0a;
+      --ink:#15154a; --mist:#f6f6fb; --mist2:#eeeef6; --line:#e2e2ee; --muted:#5d5d7a;
+      --paper:#fff; --green:#22c55e; --red:#ef4444; --amber:#f59e0b;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Manrope',sans-serif;background:var(--mist);color:var(--ink);min-height:100vh}
+    a{text-decoration:none;color:inherit}
+
+    /* ── Login ── */
+    #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--navy-deep),var(--navy))}
+    .login-box{background:#fff;border-radius:16px;padding:48px 40px;width:360px;box-shadow:0 24px 64px rgba(0,0,0,.25)}
+    .login-box h1{font-size:1.5rem;color:var(--navy);margin-bottom:6px}
+    .login-box p{color:var(--muted);font-size:.875rem;margin-bottom:28px}
+    .login-box input{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:8px;font-family:inherit;font-size:.9rem;margin-bottom:14px;outline:none;transition:border .2s}
+    .login-box input:focus{border-color:var(--orange)}
+    .login-box button{width:100%;padding:13px;background:var(--orange);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;transition:background .2s}
+    .login-box button:hover{background:var(--orange-deep)}
+    #loginError{color:var(--red);font-size:.82rem;margin-top:8px;display:none}
+
+    /* ── App shell ── */
+    #app{display:none;min-height:100vh}
+    .sidebar{position:fixed;top:0;left:0;bottom:0;width:240px;background:var(--navy-deep);padding:0;z-index:100;display:flex;flex-direction:column}
+    .sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sidebar-logo span{color:#fff;font-size:1.05rem;font-weight:700;letter-spacing:.01em}
+    .sidebar-logo small{display:block;color:rgba(255,255,255,.4);font-size:.72rem;margin-top:2px}
+    .nav-section{padding:16px 12px 0;font-size:.68rem;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.35);text-transform:uppercase}
+    .sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 20px;color:rgba(255,255,255,.65);font-size:.875rem;font-weight:500;transition:all .15s;border-left:3px solid transparent}
+    .sidebar nav a:hover{color:#fff;background:rgba(255,255,255,.06)}
+    .sidebar nav a.active{color:#fff;background:rgba(249,159,27,.12);border-left-color:var(--orange)}
+    .sidebar nav a svg{flex-shrink:0;opacity:.7}
+    .sidebar nav a.active svg{opacity:1}
+    .sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.08)}
+    .sidebar-footer a{color:rgba(255,255,255,.45);font-size:.8rem}
+    .sidebar-footer a:hover{color:#fff}
+    .main{margin-left:240px;padding:32px;min-height:100vh}
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+    .page-header h1{font-size:1.4rem;color:var(--navy);font-weight:700}
+
+    /* ── Stats ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+    .stat-card{background:#fff;border-radius:12px;padding:20px 22px;border:1px solid var(--line)}
+    .stat-card .label{font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+    .stat-card .value{font-size:1.75rem;font-weight:800;color:var(--navy)}
+    .stat-card .sub{font-size:.78rem;color:var(--muted);margin-top:4px}
+
+    /* ── Tabs ── */
+    .tabs{display:flex;gap:4px;margin-bottom:24px;background:#fff;border-radius:10px;padding:4px;border:1px solid var(--line);width:fit-content}
+    .tab-btn{padding:8px 18px;border:none;background:transparent;border-radius:7px;font-family:inherit;font-size:.85rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+    .tab-btn.active{background:var(--navy);color:#fff}
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+
+    /* ── Table ── */
+    .card{background:#fff;border-radius:12px;border:1px solid var(--line);overflow:hidden}
+    .card-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+    .card-head h2{font-size:1rem;font-weight:700;color:var(--navy)}
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;font-size:.855rem}
+    th{padding:11px 14px;text-align:left;font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:var(--mist);border-bottom:1px solid var(--line)}
+    td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink)}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:var(--mist)}
+    .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:700}
+    .badge-green{background:#dcfce7;color:#16a34a}
+    .badge-amber{background:#fef9c3;color:#a16207}
+    .badge-red{background:#fee2e2;color:#dc2626}
+    .badge-navy{background:#e8e8f4;color:var(--navy)}
+
+    /* ── Forms ── */
+    .form-section{background:#fff;border-radius:12px;border:1px solid var(--line);padding:24px;margin-bottom:20px}
+    .form-section h3{font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:16px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+    .form-row.single{grid-template-columns:1fr}
+    .field label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+    .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;font-family:inherit;font-size:.875rem;outline:none;transition:border .2s;color:var(--ink);background:#fff}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--orange)}
+    .field textarea{min-height:80px;resize:vertical}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;border:none;transition:all .15s}
+    .btn-primary{background:var(--orange);color:#fff}
+    .btn-primary:hover{background:var(--orange-deep)}
+    .btn-navy{background:var(--navy);color:#fff}
+    .btn-navy:hover{background:var(--navy-deep)}
+    .btn-danger{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5}
+    .btn-danger:hover{background:#fecaca}
+    .btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--line)}
+    .btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
+    .btn-sm{padding:5px 12px;font-size:.78rem}
+
+    /* ── Media grid ── */
+    .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:16px}
+    .media-card{border-radius:10px;border:1px solid var(--line);overflow:hidden;background:#fff}
+    .media-card img{width:100%;height:140px;object-fit:cover;background:var(--mist2);display:block}
+    .media-card .media-info{padding:10px 12px}
+    .media-card .media-caption{font-size:.8rem;color:var(--muted);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .media-card .media-tag{display:inline-block;background:var(--mist2);color:var(--muted);font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:12px;margin-bottom:8px}
+    .video-thumb{width:100%;height:140px;background:var(--navy-deep);display:flex;align-items:center;justify-content:center}
+    .video-thumb svg{color:#fff;opacity:.7}
+    .event-card-admin{background:#fff;border-radius:10px;border:1px solid var(--line);padding:16px;margin-bottom:12px;display:flex;align-items:flex-start;gap:14px}
+    .event-card-admin img{width:80px;height:60px;object-fit:cover;border-radius:6px;background:var(--mist2);flex-shrink:0}
+    .event-card-admin .ev-body{flex:1;min-width:0}
+    .event-card-admin .ev-title{font-weight:700;color:var(--navy);font-size:.9rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .event-card-admin .ev-meta{font-size:.78rem;color:var(--muted)}
+    .event-card-admin .ev-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+
+    /* ── Modal ── */
+    .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
+    .modal-backdrop.open{display:flex}
+    .modal{background:#fff;border-radius:16px;padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.2)}
+    .modal h3{font-size:1.1rem;font-weight:700;color:var(--navy);margin-bottom:20px}
+    .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+
+    /* ── Empty state ── */
+    .empty{text-align:center;padding:48px 24px;color:var(--muted)}
+    .empty svg{margin:0 auto 12px;opacity:.3}
+
+    /* ── Toast ── */
+    #toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:12px 20px;border-radius:10px;font-size:.875rem;font-weight:600;z-index:999;display:none;animation:slideUp .2s ease}
+    @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+    /* ── Responsive ── */
+    @media(max-width:900px){
+      .sidebar{width:200px}
+      .main{margin-left:200px;padding:20px}
+      .stats-grid{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:640px){
+      .sidebar{display:none}
+      .main{margin-left:0;padding:16px}
+      .stats-grid{grid-template-columns:1fr}
+      .form-row{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Login Screen ── -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h1>WOMB Circle</h1>
+    <p>Admin Panel — sign in to continue</p>
+    <input type="password" id="adminPass" placeholder="Admin password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Sign In &rarr;</button>
+    <div id="loginError">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div id="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span>WOMB Circle</span>
+      <small>Admin Panel</small>
+    </div>
+    <nav style="flex:1">
+      <div class="nav-section" style="margin-top:12px">Overview</div>
+      <a href="#" class="active" onclick="showTab('dashboard',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <div class="nav-section">Members</div>
+      <a href="#" onclick="showTab('enquiries',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Enquiries
+      </a>
+      <a href="#" onclick="showTab('payments',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+        Payments
+      </a>
+      <div class="nav-section">Content</div>
+      <a href="#" onclick="showTab('events',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Events
+      </a>
+      <a href="#" onclick="showTab('photos',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        Photos
+      </a>
+      <a href="#" onclick="showTab('videos',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        Videos
+      </a>
+      <div class="nav-section">Config</div>
+      <a href="#" onclick="showTab('settings',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        Settings
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/" target="_blank">← View Website</a><br>
+      <a href="#" onclick="doLogout()" style="margin-top:8px;display:block">Sign Out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div id="tab-dashboard" class="tab-content active">
+      <div class="page-header">
+        <h1>Dashboard</h1>
+        <span id="dashDate" style="color:var(--muted);font-size:.85rem"></span>
+      </div>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="label">Total Enquiries</div><div class="value" id="s-enquiries">—</div><div class="sub">All time</div></div>
+        <div class="stat-card"><div class="label">Paid Members</div><div class="value" id="s-payments">—</div><div class="sub">Confirmed payments</div></div>
+        <div class="stat-card"><div class="label">Total Revenue</div><div class="value" id="s-revenue">—</div><div class="sub">From memberships</div></div>
+        <div class="stat-card"><div class="label">Pending Payments</div><div class="value" id="s-pending">—</div><div class="sub">Orders initiated</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Recent Enquiries</h2><a href="#" onclick="showTab('enquiries')" style="font-size:.82rem;color:var(--orange);font-weight:600">View all →</a></div>
+        <div class="table-wrap"><table id="dashEnquiries"><thead><tr><th>Name</th><th>Email</th><th>Interest</th><th>Date</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ══ ENQUIRIES ══ -->
+    <div id="tab-enquiries" class="tab-content">
+      <div class="page-header"><h1>Enquiries</h1></div>
+      <div class="card">
+        <div class="card-head"><h2 id="enquiriesCount">All Enquiries</h2></div>
+        <div class="table-wrap">
+          <table id="enquiriesTable">
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Interest</th><th>Message</th><th>Date</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAYMENTS ══ -->
+    <div id="tab-payments" class="tab-content">
+      <div class="page-header"><h1>Payments</h1></div>
+      <div class="card">
+        <div class="card-head"><h2 id="paymentsCount">All Payments</h2></div>
+        <div class="table-wrap">
+          <table id="paymentsTable">
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Amount</th><th>Status</th><th>Razorpay Order</th><th>Razorpay Payment</th><th>Date</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ EVENTS ══ -->
+    <div id="tab-events" class="tab-content">
+      <div class="page-header">
+        <h1>Events</h1>
+        <button class="btn btn-primary" onclick="openModal('eventModal')">+ Add Event</button>
+      </div>
+      <div id="eventsContainer"></div>
+    </div>
+
+    <!-- ══ PHOTOS ══ -->
+    <div id="tab-photos" class="tab-content">
+      <div class="page-header">
+        <h1>Photos</h1>
+        <button class="btn btn-primary" onclick="openModal('photoModal')">+ Add Photo</button>
+      </div>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:16px">Paste any image URL — Google Drive sharing links are <strong>automatically converted</strong> to direct image URLs.</p>
+      <div class="media-grid" id="photosGrid"></div>
+    </div>
+
+    <!-- ══ VIDEOS ══ -->
+    <div id="tab-videos" class="tab-content">
+      <div class="page-header">
+        <h1>Videos</h1>
+        <button class="btn btn-primary" onclick="openModal('videoModal')">+ Add Video</button>
+      </div>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:16px">Paste any YouTube sharing or watch link. The embed will be generated automatically.</p>
+      <div class="media-grid" id="videosGrid"></div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div id="tab-settings" class="tab-content">
+      <div class="page-header"><h1>Settings</h1></div>
+      <div class="form-section">
+        <h3>Membership Fee</h3>
+        <div class="form-row">
+          <div class="field"><label>Amount (in paise)</label><input type="number" id="set-fee-paise" placeholder="500000"><small style="color:var(--muted);font-size:.75rem">100 paise = ₹1. Enter 500000 for ₹5,000</small></div>
+          <div class="field"><label>Display Label</label><input type="text" id="set-fee-label" placeholder="₹5,000"></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Event Modal -->
+<div class="modal-backdrop" id="eventModal">
+  <div class="modal">
+    <h3 id="eventModalTitle">Add Event</h3>
+    <input type="hidden" id="ev-id">
+    <div class="form-row">
+      <div class="field"><label>Title *</label><input type="text" id="ev-title" placeholder="Event title"></div>
+      <div class="field"><label>Kicker / Tag</label><input type="text" id="ev-kicker" placeholder="e.g. Women Directors' Conclave 2025"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Date / Period</label><input type="text" id="ev-date" placeholder="e.g. March 2025"></div>
+      <div class="field"><label>Location</label><input type="text" id="ev-location" placeholder="e.g. NSE, Mumbai"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Edition</label><input type="text" id="ev-edition" placeholder="e.g. 4th Edition"></div>
+      <div class="field"><label>Partner / Sponsor</label><input type="text" id="ev-partner" placeholder="e.g. Venue Partner: NSE"></div>
+    </div>
+    <div class="form-row single">
+      <div class="field"><label>Image URL</label><input type="url" id="ev-image" placeholder="https://..."></div>
+    </div>
+    <div class="form-row single">
+      <div class="field"><label>Description</label><textarea id="ev-desc" placeholder="Event description..."></textarea></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Display Order (lower = first)</label><input type="number" id="ev-order" value="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('eventModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEvent()">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Modal -->
+<div class="modal-backdrop" id="photoModal">
+  <div class="modal">
+    <h3>Add Photo</h3>
+    <input type="hidden" id="ph-id">
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:#0369a1;line-height:1.5">
+      <strong>Google Drive:</strong> Share the file → "Anyone with the link" → paste the sharing URL here. It will be converted automatically.
+    </div>
+    <div class="form-row single">
+      <div class="field">
+        <label>Image URL *</label>
+        <input type="url" id="ph-url" placeholder="https://drive.google.com/file/d/... or any image URL" oninput="previewPhoto(this.value)">
+      </div>
+    </div>
+    <div id="ph-preview" style="display:none;margin-bottom:14px">
+      <label style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Preview</label>
+      <img id="ph-preview-img" src="" alt="preview" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--line)" onerror="document.getElementById('ph-preview-err').style.display='block';this.style.display='none'" onload="document.getElementById('ph-preview-err').style.display='none';this.style.display='block'">
+      <div id="ph-preview-err" style="display:none;color:#ef4444;font-size:.78rem;margin-top:4px">⚠ Image could not load. Make sure the Google Drive file sharing is set to "Anyone with the link".</div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Caption</label><input type="text" id="ph-caption" placeholder="Photo caption"></div>
+      <div class="field"><label>Event Tag</label><input type="text" id="ph-tag" placeholder="e.g. WDC 2025"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Display Order</label><input type="number" id="ph-order" value="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('photoModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePhoto()">Save Photo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Video Modal -->
+<div class="modal-backdrop" id="videoModal">
+  <div class="modal">
+    <h3>Add Video</h3>
+    <input type="hidden" id="vd-id">
+    <div class="form-row single">
+      <div class="field"><label>YouTube URL *</label><input type="url" id="vd-url" placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."></div>
+    </div>
+    <div class="form-row single">
+      <div class="field"><label>Title</label><input type="text" id="vd-title" placeholder="Video title"></div>
+    </div>
+    <div class="form-row single">
+      <div class="field"><label>Description</label><textarea id="vd-desc" placeholder="Short description..."></textarea></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Display Order</label><input type="number" id="vd-order" value="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('videoModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVideo()">Save Video</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── Token storage ──────────────────────────────────────────────────────────
+  let TOKEN = localStorage.getItem('womb_admin_token') || '';
+
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN };
+  }
+
+  // ── Login ──────────────────────────────────────────────────────────────────
+  async function doLogin() {
+    const pass = document.getElementById('adminPass').value;
+    const res = await fetch('/api/admin/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass })
+    });
+    if (res.ok) {
+      const d = await res.json();
+      TOKEN = d.token;
+      localStorage.setItem('womb_admin_token', TOKEN);
+      showApp();
+    } else {
+      document.getElementById('loginError').style.display = 'block';
+    }
+  }
+
+  function doLogout() {
+    localStorage.removeItem('womb_admin_token');
+    TOKEN = '';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+
+  async function showApp() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('dashDate').textContent = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    await loadDashboard();
+  }
+
+  // ── Auto-login if token exists ─────────────────────────────────────────────
+  if (TOKEN) {
+    fetch('/api/admin/stats', { headers: authHeaders() }).then(r => {
+      if (r.ok) showApp();
+      else { TOKEN = ''; localStorage.removeItem('womb_admin_token'); }
+    });
+  }
+
+  // ── Tab navigation ─────────────────────────────────────────────────────────
+  function showTab(name, el) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    if (el) el.classList.add('active');
+    const loaders = { dashboard: loadDashboard, enquiries: loadEnquiries, payments: loadPayments, events: loadEvents, photos: loadPhotos, videos: loadVideos, settings: loadSettings };
+    if (loaders[name]) loaders[name]();
+    return false;
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  function showToast(msg, isError) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = isError ? '#ef4444' : '#191970';
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+  }
+
+  // ── API helpers ────────────────────────────────────────────────────────────
+  async function api(method, path, body) {
+    const opts = { method, headers: authHeaders() };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(path, opts);
+    if (res.status === 401) { doLogout(); return null; }
+    return res.json();
+  }
+
+  function fmt(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  }
+
+  function fmtDateTime(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  function rupees(paise) {
+    return '₹' + (paise / 100).toLocaleString('en-IN');
+  }
+
+  // ── Dashboard ─────────────────────────────────────────────────────────────
+  async function loadDashboard() {
+    const stats = await api('GET', '/api/admin/stats');
+    if (!stats) return;
+    document.getElementById('s-enquiries').textContent = stats.enquiries;
+    document.getElementById('s-payments').textContent = stats.payments;
+    document.getElementById('s-revenue').textContent = '₹' + stats.revenue.toLocaleString('en-IN');
+    document.getElementById('s-pending').textContent = stats.pending;
+
+    const enqs = await api('GET', '/api/admin/enquiries');
+    if (!enqs) return;
+    const tbody = document.querySelector('#dashEnquiries tbody');
+    tbody.innerHTML = '';
+    enqs.slice(0, 8).forEach(e => {
+      tbody.innerHTML += `<tr>
+        <td><strong>${e.name}</strong></td>
+        <td>${e.email}</td>
+        <td><span class="badge badge-navy">${e.interest || '—'}</span></td>
+        <td>${fmt(e.created_at)}</td>
+      </tr>`;
+    });
+    if (!enqs.length) tbody.innerHTML = '<tr><td colspan="4" class="empty">No enquiries yet.</td></tr>';
+  }
+
+  // ── Enquiries ─────────────────────────────────────────────────────────────
+  async function loadEnquiries() {
+    const data = await api('GET', '/api/admin/enquiries');
+    if (!data) return;
+    document.getElementById('enquiriesCount').textContent = `All Enquiries (${data.length})`;
+    const tbody = document.querySelector('#enquiriesTable tbody');
+    tbody.innerHTML = '';
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No enquiries yet.</td></tr>'; return; }
+    data.forEach(e => {
+      tbody.innerHTML += `<tr>
+        <td>${e.id}</td>
+        <td><strong>${e.name}</strong></td>
+        <td><a href="mailto:${e.email}" style="color:var(--orange)">${e.email}</a></td>
+        <td>${e.phone || '—'}</td>
+        <td>${e.role || '—'}</td>
+        <td><span class="badge badge-navy">${e.interest || '—'}</span></td>
+        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.message || '—'}</td>
+        <td>${fmtDateTime(e.created_at)}</td>
+      </tr>`;
+    });
+  }
+
+  // ── Payments ──────────────────────────────────────────────────────────────
+  async function loadPayments() {
+    const data = await api('GET', '/api/admin/payments');
+    if (!data) return;
+    document.getElementById('paymentsCount').textContent = `All Payments (${data.length})`;
+    const tbody = document.querySelector('#paymentsTable tbody');
+    tbody.innerHTML = '';
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">No payments yet.</td></tr>'; return; }
+    data.forEach(p => {
+      const badge = p.status === 'paid' ? 'badge-green' : p.status === 'created' ? 'badge-amber' : 'badge-red';
+      tbody.innerHTML += `<tr>
+        <td>${p.id}</td>
+        <td><strong>${p.name || '—'}</strong></td>
+        <td>${p.email || '—'}</td>
+        <td>${p.phone || '—'}</td>
+        <td><strong>${p.amount ? rupees(p.amount) : '—'}</strong></td>
+        <td><span class="badge ${badge}">${p.status}</span></td>
+        <td style="font-size:.75rem;font-family:monospace">${p.razorpay_order_id || '—'}</td>
+        <td style="font-size:.75rem;font-family:monospace">${p.razorpay_payment_id || '—'}</td>
+        <td>${fmtDateTime(p.created_at)}</td>
+      </tr>`;
+    });
+  }
+
+  // ── Events ────────────────────────────────────────────────────────────────
+  async function loadEvents() {
+    const data = await api('GET', '/api/admin/events');
+    if (!data) return;
+    const container = document.getElementById('eventsContainer');
+    if (!data.length) {
+      container.innerHTML = '<div class="empty"><p>No events yet. Click <strong>+ Add Event</strong> to create one.</p></div>';
+      return;
+    }
+    container.innerHTML = data.map(e => `
+      <div class="event-card-admin">
+        ${e.image_url ? `<img src="${e.image_url}" alt="${e.title}">` : '<div style="width:80px;height:60px;background:var(--mist2);border-radius:6px;flex-shrink:0"></div>'}
+        <div class="ev-body">
+          <div class="ev-title">${e.title}</div>
+          <div class="ev-meta">${e.kicker || ''}${e.date_label ? ' · ' + e.date_label : ''}${e.location ? ' · ' + e.location : ''}</div>
+          <div class="ev-actions">
+            <button class="btn btn-ghost btn-sm" onclick="editEvent(${e.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteEvent(${e.id})">Delete</button>
+            <span class="badge ${e.active ? 'badge-green' : 'badge-amber'}">${e.active ? 'Active' : 'Hidden'}</span>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  let editingEvent = null;
+
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  async function editEvent(id) {
+    const data = await api('GET', '/api/admin/events');
+    const ev = data?.find(e => e.id === id);
+    if (!ev) return;
+    editingEvent = id;
+    document.getElementById('eventModalTitle').textContent = 'Edit Event';
+    document.getElementById('ev-id').value = id;
+    document.getElementById('ev-title').value = ev.title;
+    document.getElementById('ev-kicker').value = ev.kicker || '';
+    document.getElementById('ev-date').value = ev.date_label || '';
+    document.getElementById('ev-location').value = ev.location || '';
+    document.getElementById('ev-edition').value = ev.edition || '';
+    document.getElementById('ev-partner').value = ev.partner || '';
+    document.getElementById('ev-image').value = ev.image_url || '';
+    document.getElementById('ev-desc').value = ev.description || '';
+    document.getElementById('ev-order').value = ev.order_index || 0;
+    openModal('eventModal');
+  }
+
+  async function saveEvent() {
+    const id = document.getElementById('ev-id').value;
+    const body = {
+      title:       document.getElementById('ev-title').value.trim(),
+      kicker:      document.getElementById('ev-kicker').value.trim(),
+      date_label:  document.getElementById('ev-date').value.trim(),
+      location:    document.getElementById('ev-location').value.trim(),
+      edition:     document.getElementById('ev-edition').value.trim(),
+      partner:     document.getElementById('ev-partner').value.trim(),
+      image_url:   document.getElementById('ev-image').value.trim(),
+      description: document.getElementById('ev-desc').value.trim(),
+      order_index: parseInt(document.getElementById('ev-order').value) || 0,
+      active: 1
+    };
+    if (!body.title) { showToast('Title is required', true); return; }
+    const res = id
+      ? await api('PUT', '/api/admin/events/' + id, body)
+      : await api('POST', '/api/admin/events', body);
+    if (res?.success || res?.id) {
+      closeModal('eventModal');
+      document.getElementById('ev-id').value = '';
+      editingEvent = null;
+      document.getElementById('eventModalTitle').textContent = 'Add Event';
+      ['ev-title','ev-kicker','ev-date','ev-location','ev-edition','ev-partner','ev-image','ev-desc'].forEach(f => document.getElementById(f).value = '');
+      document.getElementById('ev-order').value = 0;
+      loadEvents();
+      showToast('Event saved!');
+    }
+  }
+
+  async function deleteEvent(id) {
+    if (!confirm('Remove this event from the website?')) return;
+    await api('DELETE', '/api/admin/events/' + id);
+    loadEvents();
+    showToast('Event removed');
+  }
+
+  // ── Google Drive URL converter (mirrors server-side logic) ───────────────
+  function googleDriveToDirectUrl(url) {
+    if (!url || (!url.includes('drive.google.com') && !url.includes('docs.google.com'))) return url;
+    const patterns = [/\/file\/d\/([a-zA-Z0-9_-]+)/, /[?&]id=([a-zA-Z0-9_-]+)/, /\/d\/([a-zA-Z0-9_-]+)/];
+    for (const p of patterns) { const m = url.match(p); if (m) return 'https://lh3.googleusercontent.com/d/' + m[1]; }
+    return url;
+  }
+
+  function previewPhoto(rawUrl) {
+    const direct = googleDriveToDirectUrl(rawUrl.trim());
+    const preview = document.getElementById('ph-preview');
+    const img = document.getElementById('ph-preview-img');
+    if (!direct) { preview.style.display = 'none'; return; }
+    img.style.display = 'block';
+    img.src = direct;
+    preview.style.display = 'block';
+  }
+
+  // ── Photos ────────────────────────────────────────────────────────────────
+  async function loadPhotos() {
+    const data = await api('GET', '/api/admin/photos');
+    if (!data) return;
+    const grid = document.getElementById('photosGrid');
+    if (!data.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p>No photos yet. Click <strong>+ Add Photo</strong> to add one.</p></div>'; return; }
+    grid.innerHTML = data.map(p => `
+      <div class="media-card">
+        <img src="${p.url}" alt="${p.caption || ''}" onerror="this.style.background='var(--mist2)';this.style.height='140px'">
+        <div class="media-info">
+          ${p.event_tag ? `<span class="media-tag">${p.event_tag}</span>` : ''}
+          <div class="media-caption">${p.caption || '(no caption)'}</div>
+          <button class="btn btn-danger btn-sm" onclick="deletePhoto(${p.id})">Remove</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function savePhoto() {
+    const body = {
+      url:       document.getElementById('ph-url').value.trim(),
+      caption:   document.getElementById('ph-caption').value.trim(),
+      event_tag: document.getElementById('ph-tag').value.trim(),
+      order_index: parseInt(document.getElementById('ph-order').value) || 0
+    };
+    if (!body.url) { showToast('Image URL is required', true); return; }
+    const res = await api('POST', '/api/admin/photos', body);
+    if (res?.id) {
+      closeModal('photoModal');
+      ['ph-url','ph-caption','ph-tag'].forEach(f => document.getElementById(f).value = '');
+      document.getElementById('ph-order').value = 0;
+      document.getElementById('ph-preview').style.display = 'none';
+      loadPhotos();
+      showToast('Photo added!');
+    }
+  }
+
+  async function deletePhoto(id) {
+    if (!confirm('Remove this photo?')) return;
+    await api('DELETE', '/api/admin/photos/' + id);
+    loadPhotos();
+    showToast('Photo removed');
+  }
+
+  // ── Videos ────────────────────────────────────────────────────────────────
+  async function loadVideos() {
+    const data = await api('GET', '/api/admin/videos');
+    if (!data) return;
+    const grid = document.getElementById('videosGrid');
+    if (!data.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p>No videos yet. Click <strong>+ Add Video</strong> to add one.</p></div>'; return; }
+    grid.innerHTML = data.map(v => `
+      <div class="media-card">
+        <div class="video-thumb">
+          <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <div class="media-info">
+          <div class="media-caption" style="font-weight:600;color:var(--navy)">${v.title || '(no title)'}</div>
+          <div class="media-caption" style="font-size:.75rem">${v.description || ''}</div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <a href="${v.youtube_url}" target="_blank" class="btn btn-ghost btn-sm">Open ↗</a>
+            <button class="btn btn-danger btn-sm" onclick="deleteVideo(${v.id})">Remove</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function saveVideo() {
+    const body = {
+      youtube_url: document.getElementById('vd-url').value.trim(),
+      title:       document.getElementById('vd-title').value.trim(),
+      description: document.getElementById('vd-desc').value.trim(),
+      order_index: parseInt(document.getElementById('vd-order').value) || 0
+    };
+    if (!body.youtube_url) { showToast('YouTube URL is required', true); return; }
+    const res = await api('POST', '/api/admin/videos', body);
+    if (res?.id) {
+      closeModal('videoModal');
+      ['vd-url','vd-title','vd-desc'].forEach(f => document.getElementById(f).value = '');
+      document.getElementById('vd-order').value = 0;
+      loadVideos();
+      showToast('Video added!');
+    }
+  }
+
+  async function deleteVideo(id) {
+    if (!confirm('Remove this video?')) return;
+    await api('DELETE', '/api/admin/videos/' + id);
+    loadVideos();
+    showToast('Video removed');
+  }
+
+  // ── Settings ──────────────────────────────────────────────────────────────
+  async function loadSettings() {
+    const data = await api('GET', '/api/admin/settings');
+    if (!data) return;
+    document.getElementById('set-fee-paise').value = data.membership_fee_paise || '';
+    document.getElementById('set-fee-label').value = data.membership_fee_label || '';
+  }
+
+  async function saveSettings() {
+    const body = {
+      membership_fee_paise: document.getElementById('set-fee-paise').value,
+      membership_fee_label: document.getElementById('set-fee-label').value
+    };
+    const res = await api('POST', '/api/admin/settings', body);
+    if (res?.success) showToast('Settings saved!');
+  }
+
+  // ── Close modal on backdrop click ─────────────────────────────────────────
+  document.querySelectorAll('.modal-backdrop').forEach(b => {
+    b.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+  });
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
+  });
+</script>
+</body>
+</html>
