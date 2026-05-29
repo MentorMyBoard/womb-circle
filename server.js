@@ -1,16 +1,18 @@
 require('dotenv').config();
-const express = require('express');
-const initSqlJs = require('sql.js');
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+const express    = require('express');
+const compression = require('compression');
+const initSqlJs  = require('sql.js');
+const Razorpay   = require('razorpay');
+const crypto     = require('crypto');
+const jwt        = require('jsonwebtoken');
+const axios      = require('axios');
+const fs         = require('fs');
+const path       = require('path');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const app    = express();
+const PORT   = process.env.PORT || 3000;
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'womb.db');
+const SITE_URL = (process.env.SITE_URL || 'https://mmbwombcircle.com').replace(/\/$/, '');
 
 // ── Pure-JS SQLite wrapper (sql.js, no native compilation) ──────────────────
 // Provides a better-sqlite3-style synchronous API (prepare/run/get/all).
@@ -155,7 +157,11 @@ async function main() {
     key_secret: process.env.RAZORPAY_KEY_SECRET || ''
   });
 
+  // ── Load HTML template once (SSR replaces placeholders per request) ──────
+  const htmlTemplate = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+
   // ── Middleware ────────────────────────────────────────────────────────────
+  app.use(compression());
   app.use(express.static(path.join(__dirname)));
   app.use('/api/razorpay-webhook', express.raw({ type: 'application/json' }));
   app.use(express.json());
@@ -521,9 +527,119 @@ async function main() {
     res.json({ success: true });
   });
 
+  // ── SSR render helpers ────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function renderPhotos(photos) {
+    if (!photos.length) return '<div class="photo-empty">Photos coming soon — check back after our next event.</div>';
+    return photos.map(p =>
+      `<div class="photo-item" onclick="openLightbox('${esc(p.url)}','${esc(p.caption)}')">` +
+        `<img src="${esc(p.url)}" alt="${esc(p.caption || 'WOMB Circle event photo')}" loading="lazy">` +
+        `<div class="photo-overlay">` +
+          (p.event_tag ? `<div><span class="photo-tag">${esc(p.event_tag)}</span><br></div>` : '') +
+          (p.caption   ? `<span class="photo-caption">${esc(p.caption)}</span>` : '') +
+        `</div>` +
+      `</div>`
+    ).join('\n');
+  }
+
+  function renderVideos(videos) {
+    if (!videos.length) return '<div class="video-empty">Event videos coming soon.</div>';
+    return videos.map(v =>
+      `<div class="video-card">` +
+        `<div class="video-frame"><iframe src="${esc(v.embed_url)}" title="${esc(v.title || 'WOMB Circle event video')}" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen loading="lazy"></iframe></div>` +
+        ((v.title || v.description) ?
+          `<div class="video-info">` +
+            (v.title       ? `<h4>${esc(v.title)}</h4>` : '') +
+            (v.description ? `<p>${esc(v.description)}</p>` : '') +
+          `</div>` : '') +
+      `</div>`
+    ).join('\n');
+  }
+
   // ── Page routes ───────────────────────────────────────────────────────────
   app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-  app.get('/',     (_, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
+  // Homepage — SSR injects photos & videos so Googlebot indexes real content
+  app.get('/', (_, res) => {
+    const photos = db.prepare('SELECT * FROM photos WHERE active=1 ORDER BY order_index ASC, id DESC').all();
+    const videos = db.prepare('SELECT * FROM videos WHERE active=1 ORDER BY order_index ASC, id DESC').all();
+    const html = htmlTemplate
+      .replace('<!-- SSR_PHOTOS -->', renderPhotos(photos))
+      .replace('<!-- SSR_VIDEOS -->', renderVideos(videos));
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.send(html);
+  });
+
+  // ── robots.txt ────────────────────────────────────────────────────────────
+  app.get('/robots.txt', (_, res) => {
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(
+`User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: ${SITE_URL}/sitemap.xml`
+    );
+  });
+
+  // ── sitemap.xml ───────────────────────────────────────────────────────────
+  app.get('/sitemap.xml', (_, res) => {
+    const today = new Date().toISOString().split('T')[0];
+    res.setHeader('Content-Type', 'application/xml');
+    res.send(
+`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>${SITE_URL}/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${SITE_URL}/#about</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${SITE_URL}/#events</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${SITE_URL}/#photos</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${SITE_URL}/#videos</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${SITE_URL}/#join</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${SITE_URL}/#contact</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`
+    );
+  });
 
   // ── Start ─────────────────────────────────────────────────────────────────
   app.listen(PORT, () => {
