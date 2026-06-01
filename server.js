@@ -400,6 +400,16 @@ async function main() {
     const payEnt  = body.payload?.payment?.entity;
     const linkEnt = body.payload?.payment_link?.entity;
 
+    // ── Filter: only process payments from the WOMB Circle payment link ─────
+    const allowedLinkId = process.env.RAZORPAY_PAYMENT_LINK_ID;
+    if (allowedLinkId) {
+      const incomingLinkId = linkEnt?.id || payEnt?.payment_link_id || '';
+      if (incomingLinkId && incomingLinkId !== allowedLinkId) {
+        console.log(`[Webhook] Ignored — different payment link: ${incomingLinkId}`);
+        return;
+      }
+    }
+
     const paymentId = payEnt?.id || '';
     const orderId   = payEnt?.order_id || '';
     const amount    = payEnt?.amount || linkEnt?.amount || 0;
