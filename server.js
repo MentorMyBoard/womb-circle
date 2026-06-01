@@ -400,12 +400,13 @@ async function main() {
     const payEnt  = body.payload?.payment?.entity;
     const linkEnt = body.payload?.payment_link?.entity;
 
-    // ── Filter: only process payments from the WOMB Circle payment link ─────
-    const allowedLinkId = process.env.RAZORPAY_PAYMENT_LINK_ID;
-    if (allowedLinkId) {
-      const incomingLinkId = linkEnt?.id || payEnt?.payment_link_id || '';
-      if (incomingLinkId && incomingLinkId !== allowedLinkId) {
-        console.log(`[Webhook] Ignored — different payment link: ${incomingLinkId}`);
+    // ── Filter: only process payments from the WOMB Circle payment page ──────
+    const allowedId = process.env.RAZORPAY_PAYMENT_LINK_ID;
+    if (allowedId) {
+      // Payment Pages use payment_page_id; Payment Links use payment_link_id
+      const incomingId = payEnt?.payment_page_id || payEnt?.payment_link_id || linkEnt?.id || '';
+      if (incomingId && incomingId !== allowedId) {
+        console.log(`[Webhook] Ignored — different page/link: ${incomingId}`);
         return;
       }
     }
