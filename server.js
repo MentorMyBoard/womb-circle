@@ -160,10 +160,15 @@ async function main() {
   // ── Load HTML template once (SSR replaces placeholders per request) ──────
   const htmlTemplate = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 
+  // ── Migrations (safe: ignore if column already exists) ───────────────────
+  try { db._db.run('ALTER TABLE payments ADD COLUMN notes TEXT'); db._save(); } catch {}
+
   // ── Middleware ────────────────────────────────────────────────────────────
   app.use(compression());
   app.use(express.static(path.join(__dirname)));
-  app.use('/api/razorpay-webhook', express.raw({ type: 'application/json' }));
+  // Raw body needed for Razorpay webhook signature verification
+  app.use('/api/razorpay-webhook',   express.raw({ type: 'application/json' }));
+  app.use('/api/webhooks/razorpay',  express.raw({ type: 'application/json' }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -228,8 +233,8 @@ async function main() {
 
   // ── JWT middleware ────────────────────────────────────────────────────────
   function requireAdmin(req, res, next) {
-    const auth = req.headers.authorization || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    const auth  = req.headers.authorization || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : (req.query.token || null);
     if (!token) return res.status(401).json({ error: 'Unauthorized' });
     try {
       jwt.verify(token, process.env.JWT_SECRET || 'womb-secret-key');
@@ -378,26 +383,141 @@ async function main() {
     res.json({ success: true });
   });
 
-  // ── Razorpay Webhook ──────────────────────────────────────────────────────
-  app.post('/api/razorpay-webhook', (req, res) => {
-    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const sig = req.headers['x-razorpay-signature'] || '';
-      const expected = crypto.createHmac('sha256', webhookSecret).update(req.body).digest('hex');
-      if (sig !== expected) return res.status(400).send('Invalid signature');
+  // ── Shared webhook handler (used by both routes) ─────────────────────────
+  function verifyWebhookSig(req) {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!secret) return true;
+    const sig      = req.headers['x-razorpay-signature'] || '';
+    const expected = crypto.createHmac('sha256', secret).update(req.body).digest('hex');
+    return sig === expected;
+  }
+
+  async function handleWebhookBody(body) {
+    const event = body.event;
+    console.log('[Webhook]', event);
+
+    // ── Extract payment entity ──────────────────────────────────────────────
+    const payEnt  = body.payload?.payment?.entity;
+    const linkEnt = body.payload?.payment_link?.entity;
+
+    const paymentId = payEnt?.id || '';
+    const orderId   = payEnt?.order_id || '';
+    const amount    = payEnt?.amount || linkEnt?.amount || 0;
+    const email     = payEnt?.email     || linkEnt?.customer?.email   || '';
+    const phone     = payEnt?.contact   || linkEnt?.customer?.contact || '';
+    const name      = payEnt?.notes?.name || payEnt?.notes?.['Name'] ||
+                      linkEnt?.customer?.name || '';
+    const linkId    = linkEnt?.id || '';
+    const amtFmt    = `₹${(amount / 100).toLocaleString('en-IN')}`;
+
+    if (event === 'payment.captured' || event === 'payment_link.paid' || event === 'order.paid') {
+      const notes = linkId ? `Payment Link: ${linkId}` : `Event: ${event}`;
+
+      // Upsert — avoid duplicates
+      const existing = db.prepare('SELECT id FROM payments WHERE razorpay_payment_id=?').get(paymentId);
+      if (existing) {
+        db.prepare(`UPDATE payments SET status='paid', paid_at=datetime('now'), notes=? WHERE razorpay_payment_id=?`)
+          .run(notes, paymentId);
+      } else {
+        db.prepare(`INSERT INTO payments (razorpay_payment_id, razorpay_order_id, name, email, phone, amount, status, notes, paid_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 'paid', ?, datetime('now'))`)
+          .run(paymentId, orderId, name, email, phone, amount, notes);
+      }
+
+      // Email to customer
+      if (email) {
+        sendBrevoEmail({
+          to: email, toName: name || email,
+          subject: 'Welcome to WOMB Circle — Payment Confirmed!',
+          htmlContent: `
+            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px">
+              <h2 style="color:#191970">Welcome to WOMB Circle${name ? ', ' + name : ''}!</h2>
+              <p style="color:#5d5d7a;line-height:1.6">Your membership payment of <strong>${amtFmt}</strong> has been received.
+              You are now part of India's premier community of women board leaders.</p>
+              <div style="background:#f6f6fb;border-radius:8px;padding:16px 20px;margin:24px 0">
+                <strong>Payment ID:</strong> ${paymentId}<br>
+                <strong>Amount:</strong> ${amtFmt}<br>
+                <strong>Status:</strong> ✅ Confirmed
+              </div>
+              <p style="color:#5d5d7a;line-height:1.6">Our team will reach out within 1–2 business days to complete your onboarding.</p>
+              <p style="color:#5d5d7a;font-size:.85rem">— The WOMB Circle Team<br>
+              <a href="${SITE_URL}" style="color:#f99f1b">mmbwombcircle.com</a></p>
+            </div>`
+        });
+      }
+
+      notifyAdmin(`✅ New Payment: ${name || email} — ${amtFmt}`,
+        `<div style="font-family:sans-serif;padding:24px">
+          <h3 style="color:#191970">New Membership Payment</h3>
+          <table style="border-collapse:collapse;width:100%">
+            <tr><td style="padding:6px 12px;background:#f6f6fb;font-weight:600">Name</td><td style="padding:6px 12px">${name || '—'}</td></tr>
+            <tr><td style="padding:6px 12px;background:#f6f6fb;font-weight:600">Email</td><td style="padding:6px 12px">${email || '—'}</td></tr>
+            <tr><td style="padding:6px 12px;background:#f6f6fb;font-weight:600">Phone</td><td style="padding:6px 12px">${phone || '—'}</td></tr>
+            <tr><td style="padding:6px 12px;background:#f6f6fb;font-weight:600">Amount</td><td style="padding:6px 12px">${amtFmt}</td></tr>
+            <tr><td style="padding:6px 12px;background:#f6f6fb;font-weight:600">Payment ID</td><td style="padding:6px 12px">${paymentId}</td></tr>
+            <tr><td style="padding:6px 12px;background:#f6f6fb;font-weight:600">Event</td><td style="padding:6px 12px">${event}</td></tr>
+          </table>
+          <p><a href="${SITE_URL}/admin">View Admin Panel →</a></p>
+        </div>`
+      );
+
+    } else if (event === 'payment.failed') {
+      const errCode = payEnt?.error_code || '';
+      const errDesc = payEnt?.error_description || payEnt?.error_reason || 'Unknown error';
+      const notes   = `FAILED — ${errCode}: ${errDesc}`;
+
+      const existing = db.prepare('SELECT id FROM payments WHERE razorpay_payment_id=?').get(paymentId);
+      if (!existing) {
+        db.prepare(`INSERT INTO payments (razorpay_payment_id, razorpay_order_id, name, email, phone, amount, status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, 'failed', ?)`)
+          .run(paymentId, orderId, name, email, phone, amount, notes);
+      }
+
+      // Email customer about failure
+      if (email) {
+        sendBrevoEmail({
+          to: email, toName: name || email,
+          subject: 'Payment Failed — WOMB Circle',
+          htmlContent: `
+            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px">
+              <h2 style="color:#ef4444">Payment Could Not Be Processed</h2>
+              <p style="color:#5d5d7a;line-height:1.6">Unfortunately your payment of <strong>${amtFmt}</strong> could not be completed.</p>
+              <div style="background:#fee2e2;border-radius:8px;padding:16px 20px;margin:24px 0;color:#dc2626">
+                <strong>Reason:</strong> ${errDesc}
+              </div>
+              <p style="color:#5d5d7a;line-height:1.6">Please try again or contact us at
+              <a href="mailto:support@mentormyboard.com" style="color:#f99f1b">support@mentormyboard.com</a></p>
+              <a href="${SITE_URL}/#join" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#f99f1b;color:#fff;border-radius:8px;text-decoration:none;font-weight:700">Try Again →</a>
+              <p style="color:#5d5d7a;font-size:.85rem;margin-top:24px">— The WOMB Circle Team</p>
+            </div>`
+        });
+      }
+
+      notifyAdmin(`❌ Payment Failed: ${email || paymentId} — ${amtFmt}`,
+        `<div style="font-family:sans-serif;padding:24px">
+          <h3 style="color:#ef4444">Payment Failed</h3>
+          <table style="border-collapse:collapse;width:100%">
+            <tr><td style="padding:6px 12px;background:#f6f6fb;font-weight:600">Email</td><td style="padding:6px 12px">${email || '—'}</td></tr>
+            <tr><td style="padding:6px 12px;background:#f6f6fb;font-weight:600">Amount</td><td style="padding:6px 12px">${amtFmt}</td></tr>
+            <tr><td style="padding:6px 12px;background:#f6f6fb;font-weight:600">Error</td><td style="padding:6px 12px">${errCode}: ${errDesc}</td></tr>
+            <tr><td style="padding:6px 12px;background:#f6f6fb;font-weight:600">Payment ID</td><td style="padding:6px 12px">${paymentId}</td></tr>
+          </table>
+        </div>`
+      );
     }
+  }
+
+  // ── Webhook routes (both old + new URL from Razorpay dashboard) ───────────
+  function webhookRoute(req, res) {
+    if (!verifyWebhookSig(req)) return res.status(400).send('Invalid signature');
     let body;
     try { body = JSON.parse(req.body); } catch { return res.status(400).send('Bad JSON'); }
-
-    if (body.event === 'payment.captured') {
-      const p = body.payload?.payment?.entity;
-      if (p) {
-        db.prepare(`UPDATE payments SET razorpay_payment_id=?, status='paid', paid_at=datetime('now') WHERE razorpay_order_id=? AND status!='paid'`)
-          .run(p.id, p.order_id);
-      }
-    }
+    handleWebhookBody(body);
     res.json({ received: true });
-  });
+  }
+
+  app.post('/api/razorpay-webhook',  webhookRoute);
+  app.post('/api/webhooks/razorpay', webhookRoute);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ADMIN AUTH
@@ -525,6 +645,38 @@ async function main() {
     if (membership_fee_label) db._db.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('membership_fee_label', ?)", [membership_fee_label]);
     db._save();
     res.json({ success: true });
+  });
+
+  // ── CSV export helpers ────────────────────────────────────────────────────
+  function csvCell(v) {
+    const s = String(v == null ? '' : v).replace(/"/g, '""');
+    return `"${s}"`;
+  }
+
+  app.get('/api/admin/export/enquiries', requireAdmin, (_, res) => {
+    const rows = db.prepare('SELECT * FROM enquiries ORDER BY id DESC').all();
+    const lines = [
+      ['ID','Name','Email','Phone','Role','Interest','Message','Date'].join(','),
+      ...rows.map(r => [r.id, csvCell(r.name), csvCell(r.email), csvCell(r.phone),
+        csvCell(r.role), csvCell(r.interest), csvCell(r.message), csvCell(r.created_at)].join(','))
+    ];
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="womb-enquiries-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send('﻿' + lines.join('\r\n'));
+  });
+
+  app.get('/api/admin/export/payments', requireAdmin, (_, res) => {
+    const rows = db.prepare('SELECT * FROM payments ORDER BY id DESC').all();
+    const lines = [
+      ['ID','Name','Email','Phone','Amount (INR)','Status','Payment ID','Order ID','Notes','Created','Paid At'].join(','),
+      ...rows.map(r => [r.id, csvCell(r.name), csvCell(r.email), csvCell(r.phone),
+        r.amount ? (r.amount / 100).toFixed(2) : '0',
+        r.status || '', csvCell(r.razorpay_payment_id), csvCell(r.razorpay_order_id),
+        csvCell(r.notes), csvCell(r.created_at), csvCell(r.paid_at)].join(','))
+    ];
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="womb-payments-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send('﻿' + lines.join('\r\n'));
   });
 
   // ── SSR render helpers ────────────────────────────────────────────────────

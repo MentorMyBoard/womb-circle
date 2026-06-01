@@ -224,7 +224,10 @@
 
     <!-- ══ ENQUIRIES ══ -->
     <div id="tab-enquiries" class="tab-content">
-      <div class="page-header"><h1>Enquiries</h1></div>
+      <div class="page-header">
+        <h1>Enquiries</h1>
+        <a href="/api/admin/export/enquiries" id="exportEnquiriesBtn" class="btn btn-ghost" style="font-size:.82rem" download>⬇ Export CSV</a>
+      </div>
       <div class="card">
         <div class="card-head"><h2 id="enquiriesCount">All Enquiries</h2></div>
         <div class="table-wrap">
@@ -238,7 +241,10 @@
 
     <!-- ══ PAYMENTS ══ -->
     <div id="tab-payments" class="tab-content">
-      <div class="page-header"><h1>Payments</h1></div>
+      <div class="page-header">
+        <h1>Payments</h1>
+        <a href="/api/admin/export/payments" id="exportPaymentsBtn" class="btn btn-ghost" style="font-size:.82rem" download>⬇ Export CSV</a>
+      </div>
       <div class="card">
         <div class="card-head"><h2 id="paymentsCount">All Payments</h2></div>
         <div class="table-wrap">
@@ -424,6 +430,7 @@
   async function showApp() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
+    wireExportButtons();
     document.getElementById('dashDate').textContent = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
     await loadDashboard();
   }
@@ -431,7 +438,7 @@
   // ── Auto-login if token exists ─────────────────────────────────────────────
   if (TOKEN) {
     fetch('/api/admin/stats', { headers: authHeaders() }).then(r => {
-      if (r.ok) showApp();
+      if (r.ok) { showApp(); wireExportButtons(); }
       else { TOKEN = ''; localStorage.removeItem('womb_admin_token'); }
     });
   }
@@ -757,6 +764,14 @@
     };
     const res = await api('POST', '/api/admin/settings', body);
     if (res?.success) showToast('Settings saved!');
+  }
+
+  // ── Wire export buttons with JWT token ───────────────────────────────────
+  function wireExportButtons() {
+    ['exportEnquiriesBtn','exportPaymentsBtn'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el) el.href = el.href.split('?')[0] + '?token=' + encodeURIComponent(TOKEN);
+    });
   }
 
   // ── Close modal on backdrop click ─────────────────────────────────────────

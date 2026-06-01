@@ -1727,7 +1727,7 @@
       </ul>
       <div class="nav-cta">
         <a href="#contact" class="btn btn-line">Contact Us</a>
-        <a href="RAZORPAY_PAYMENT_LINK_HERE" target="_blank" rel="noopener" class="btn btn-fill">Join WOMB Circle</a>
+        <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank" rel="noopener" class="btn btn-fill">Join WOMB Circle</a>
       </div>
       <button class="menu-toggle" onclick="document.getElementById('hdr').classList.toggle('open')">&#9776;</button>
     </div>
@@ -1744,7 +1744,7 @@
             Independent Directors, CXOs and governance leaders — building visibility, connection and boardroom
             influence, together.</p>
           <div class="hero-actions">
-            <a href="RAZORPAY_PAYMENT_LINK_HERE" target="_blank" rel="noopener" class="btn btn-fill">Join WOMB Circle
+            <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank" rel="noopener" class="btn btn-fill">Join WOMB Circle
               &rarr;</a>
             <a href="#contact" class="btn btn-line">Contact / Enquire</a>
           </div>
@@ -2053,7 +2053,7 @@
           <p class="lead" style="margin-top:16px">WOMB Circle is curated for women already serving on Boards or in
             influential leadership positions. Membership is by application.</p>
           <div class="hero-actions" style="margin-top:28px">
-            <a href="RAZORPAY_PAYMENT_LINK_HERE" target="_blank" rel="noopener" class="btn btn-fill">Join WOMB Circle
+            <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank" rel="noopener" class="btn btn-fill">Join WOMB Circle
               &rarr;</a>
             <a href="#contact" class="btn btn-line">Have Questions?</a>
           </div>
@@ -2091,7 +2091,7 @@
           <h3>Join WOMB Circle</h3>
           <p>Ready to belong? Complete your membership securely and step into India's premier women board-leaders
             community.</p>
-          <a href="RAZORPAY_PAYMENT_LINK_HERE" target="_blank" rel="noopener" class="btn cc-navy">Join Now via Razorpay
+          <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank" rel="noopener" class="btn cc-navy">Join Now via Razorpay
             &rarr;</a>
         </div>
       </div>
@@ -2142,7 +2142,7 @@
               placeholder="How can we help you?"></textarea></div>
           <button type="submit" class="btn btn-navy"
             style="width:100%;justify-content:center;padding:15px;font-size:.95rem">Send Enquiry &rarr;</button>
-          <p class="form-note">Prefer to join straightaway? <a href="RAZORPAY_PAYMENT_LINK_HERE" target="_blank"
+          <p class="form-note">Prefer to join straightaway? <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank"
               rel="noopener" style="color:var(--orange-deep);font-weight:700">Join WOMB Circle via Razorpay</a></p>
         </form>
       </div>
@@ -2181,7 +2181,7 @@
         <div class="f-col">
           <h5>Join</h5>
           <ul>
-            <li><a href="RAZORPAY_PAYMENT_LINK_HERE" target="_blank" rel="noopener">Become a Member</a></li>
+            <li><a href="https://rzp.io/rzp/mmbwombcircle" target="_blank" rel="noopener">Become a Member</a></li>
             <li><a href="#join">Membership Criteria</a></li>
             <li><a href="#contact">Enquiry Form</a></li>
             <li><a href="#contact">Partner with Us</a></li>
@@ -2200,7 +2200,7 @@
         </div>
         <div class="hero-actions" style="margin:0">
           <a href="#contact" class="btn btn-line" style="border-color:rgba(255,255,255,.4);color:#fff">Contact</a>
-          <a href="RAZORPAY_PAYMENT_LINK_HERE" target="_blank" rel="noopener" class="btn btn-fill">Join WOMB Circle</a>
+          <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank" rel="noopener" class="btn btn-fill">Join WOMB Circle</a>
         </div>
       </div>
       <div class="f-bottom">
@@ -2235,8 +2235,7 @@
     </div>
   </div>
 
-  <!-- Razorpay checkout SDK -->
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <!-- Razorpay payment via hosted payment link (no SDK needed) -->
 
   <script>
     // ── Reveal on scroll ───────────────────────────────────────────────────
@@ -2280,116 +2279,9 @@
       return false;
     }
 
-    // ── Payment modal ──────────────────────────────────────────────────────
-    var _rzpKeyId = '';
-    var _feeLabel = '₹5,000';
 
-    fetch('/api/settings/public')
-      .then(function(r) { return r.json(); })
-      .then(function(s) {
-        _rzpKeyId = s.razorpay_key_id || '';
-        _feeLabel = s.membership_fee_label || '₹5,000';
-        document.getElementById('payFeeLabel').textContent = _feeLabel;
-      })
-      .catch(function() {});
-
-    function openPayModal() {
-      document.getElementById('payForm').style.display = 'block';
-      document.getElementById('paySuccess').style.display = 'none';
-      document.getElementById('payError').style.display = 'none';
-      document.getElementById('payBackdrop').classList.add('open');
-    }
-
-    function closePayModal() {
-      document.getElementById('payBackdrop').classList.remove('open');
-    }
-
-    document.getElementById('payBackdrop').addEventListener('click', function(e) {
-      if (e.target === this) closePayModal();
-    });
-
-    async function startPayment() {
-      var name  = document.getElementById('pay-name').value.trim();
-      var email = document.getElementById('pay-email').value.trim();
-      var phone = document.getElementById('pay-phone').value.trim();
-
-      if (!name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        document.getElementById('payError').style.display = 'block';
-        return;
-      }
-      document.getElementById('payError').style.display = 'none';
-
-      var btn = document.getElementById('payBtn');
-      btn.textContent = 'Creating order…';
-      btn.disabled = true;
-
-      try {
-        var res = await fetch('/api/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, email: email, phone: phone })
-        });
-        var order = await res.json();
-
-        if (!res.ok) { throw new Error(order.error || 'Order failed'); }
-
-        var options = {
-          key:         order.key_id || _rzpKeyId,
-          amount:      order.amount,
-          currency:    order.currency || 'INR',
-          name:        'WOMB Circle',
-          description: 'Membership — Women on Management and Boards',
-          order_id:    order.order_id,
-          prefill:     { name: name, email: email, contact: phone },
-          theme:       { color: '#f99f1b' },
-          handler: function(response) {
-            fetch('/api/verify-payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id:   response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature,
-                name: name, email: email, phone: phone
-              })
-            })
-            .then(function(r) { return r.json(); })
-            .then(function(v) {
-              if (v.success) {
-                document.getElementById('payForm').style.display = 'none';
-                document.getElementById('paySuccess').style.display = 'block';
-              }
-            })
-            .catch(function() { alert('Payment received but verification pending. Please email us your payment ID: ' + response.razorpay_payment_id); });
-          },
-          modal: {
-            ondismiss: function() { btn.textContent = 'Proceed to Pay →'; btn.disabled = false; }
-          }
-        };
-
-        var rzp = new Razorpay(options);
-        rzp.on('payment.failed', function(resp) {
-          alert('Payment failed: ' + (resp.error.description || 'Please try again.'));
-          btn.textContent = 'Proceed to Pay →';
-          btn.disabled = false;
-        });
-        rzp.open();
-
-      } catch (err) {
-        alert(err.message || 'Could not start payment. Please try again.');
-        btn.textContent = 'Proceed to Pay →';
-        btn.disabled = false;
-      }
-    }
-
-    // Replace all Razorpay placeholder links with modal trigger
-    document.querySelectorAll('a[href="RAZORPAY_PAYMENT_LINK_HERE"]').forEach(function(a) {
-      a.removeAttribute('href');
-      a.removeAttribute('target');
-      a.removeAttribute('rel');
-      a.style.cursor = 'pointer';
-      a.addEventListener('click', function(e) { e.preventDefault(); openPayModal(); });
-    });
+    // All payment buttons are direct links to the Razorpay payment page.
+    // Payments are tracked automatically via Razorpay webhook → /api/webhooks/razorpay
 
     // ── Load Photos from API ───────────────────────────────────────────────
     fetch('/api/photos')
