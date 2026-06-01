@@ -554,6 +554,11 @@ async function main() {
     res.json(db.prepare('SELECT * FROM payments ORDER BY id DESC').all());
   });
 
+  app.delete('/api/admin/payments/:id', requireAdmin, (req, res) => {
+    db.prepare('DELETE FROM payments WHERE id=?').run(req.params.id);
+    res.json({ success: true });
+  });
+
   app.get('/api/admin/stats', requireAdmin, (_, res) => {
     const enquiries = db.prepare('SELECT COUNT(*) AS c FROM enquiries').get()?.c ?? 0;
     const payments  = db.prepare("SELECT COUNT(*) AS c FROM payments WHERE status='paid'").get()?.c ?? 0;

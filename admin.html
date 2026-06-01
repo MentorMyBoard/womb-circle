@@ -249,7 +249,7 @@
         <div class="card-head"><h2 id="paymentsCount">All Payments</h2></div>
         <div class="table-wrap">
           <table id="paymentsTable">
-            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Amount</th><th>Status</th><th>Razorpay Order</th><th>Razorpay Payment</th><th>Date</th></tr></thead>
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Amount</th><th>Status</th><th>Razorpay Order</th><th>Razorpay Payment</th><th>Date</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -539,7 +539,7 @@
     document.getElementById('paymentsCount').textContent = `All Payments (${data.length})`;
     const tbody = document.querySelector('#paymentsTable tbody');
     tbody.innerHTML = '';
-    if (!data.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">No payments yet.</td></tr>'; return; }
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No payments yet.</td></tr>'; return; }
     data.forEach(p => {
       const badge = p.status === 'paid' ? 'badge-green' : p.status === 'created' ? 'badge-amber' : 'badge-red';
       tbody.innerHTML += `<tr>
@@ -552,8 +552,15 @@
         <td style="font-size:.75rem;font-family:monospace">${p.razorpay_order_id || '—'}</td>
         <td style="font-size:.75rem;font-family:monospace">${p.razorpay_payment_id || '—'}</td>
         <td>${fmtDateTime(p.created_at)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="deletePayment(${p.id})">Delete</button></td>
       </tr>`;
     });
+  }
+
+  async function deletePayment(id) {
+    if (!confirm('Delete this payment record? This cannot be undone.')) return;
+    const res = await api('DELETE', '/api/admin/payments/' + id);
+    if (res?.success) { loadPayments(); showToast('Payment deleted'); }
   }
 
   // ── Events ────────────────────────────────────────────────────────────────
