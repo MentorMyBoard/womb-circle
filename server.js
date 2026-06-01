@@ -401,7 +401,7 @@ async function main() {
     const linkEnt = body.payload?.payment_link?.entity;
 
     // ── Filter: only process payments from the WOMB Circle payment page ──────
-    const allowedId = process.env.RAZORPAY_PAYMENT_LINK_ID;
+    const allowedId = process.env.RAZORPAY_PAYMENT_PAGE_ID || process.env.RAZORPAY_PAYMENT_LINK_ID;
     if (allowedId) {
       // Payment Pages use payment_page_id; Payment Links use payment_link_id
       const incomingId = payEnt?.payment_page_id || payEnt?.payment_link_id || linkEnt?.id || '';
