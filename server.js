@@ -750,8 +750,13 @@ async function main() {
     res.send(
 `User-agent: *
 Allow: /
+Allow: /api/events
+Allow: /api/photos
+Allow: /api/videos
 Disallow: /admin
-Disallow: /api/
+Disallow: /api/admin/
+Disallow: /api/razorpay-webhook
+Disallow: /api/webhooks/
 
 Sitemap: ${SITE_URL}/sitemap.xml`
     );
