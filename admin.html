@@ -167,6 +167,10 @@
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         Dashboard
       </a>
+      <a href="#" onclick="showTab('visitors',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Visitors
+      </a>
       <div class="nav-section">Members</div>
       <a href="#" onclick="showTab('enquiries',this)">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -215,6 +219,9 @@
         <div class="stat-card"><div class="label">Paid Members</div><div class="value" id="s-payments">—</div><div class="sub">Confirmed payments</div></div>
         <div class="stat-card"><div class="label">Total Revenue</div><div class="value" id="s-revenue">—</div><div class="sub">From memberships</div></div>
         <div class="stat-card"><div class="label">Pending Payments</div><div class="value" id="s-pending">—</div><div class="sub">Orders initiated</div></div>
+        <div class="stat-card"><div class="label">Total Page Visits</div><div class="value" id="s-totalVisits">—</div><div class="sub">All time</div></div>
+        <div class="stat-card"><div class="label">Unique Visitors</div><div class="value" id="s-uniqueVisits">—</div><div class="sub">Distinct IP addresses</div></div>
+        <div class="stat-card"><div class="label">Today's Visits</div><div class="value" id="s-todayVisits">—</div><div class="sub">Since midnight</div></div>
       </div>
       <div class="card">
         <div class="card-head"><h2>Recent Enquiries</h2><a href="#" onclick="showTab('enquiries')" style="font-size:.82rem;color:var(--orange);font-weight:600">View all →</a></div>
@@ -283,6 +290,50 @@
       </div>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:16px">Paste any YouTube sharing or watch link. The embed will be generated automatically.</p>
       <div class="media-grid" id="videosGrid"></div>
+    </div>
+
+    <!-- ══ VISITORS ══ -->
+    <div id="tab-visitors" class="tab-content">
+      <div class="page-header">
+        <h1>Website Visitors</h1>
+        <button class="btn btn-ghost" onclick="clearVisitors()" style="font-size:.82rem;color:#ef4444;border-color:#ef4444">🗑 Clear All Logs</button>
+      </div>
+      <!-- Summary cards -->
+      <div class="stats-grid" style="margin-bottom:24px">
+        <div class="stat-card"><div class="label">Total Visits</div><div class="value" id="v-total">—</div><div class="sub">All page loads</div></div>
+        <div class="stat-card"><div class="label">Unique Visitors</div><div class="value" id="v-unique">—</div><div class="sub">Distinct IPs</div></div>
+        <div class="stat-card"><div class="label">Today</div><div class="value" id="v-today">—</div><div class="sub">Visits today</div></div>
+      </div>
+      <!-- Daily breakdown -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head"><h2>Daily Breakdown <span style="font-size:.78rem;color:var(--muted);font-weight:400">(last 30 days)</span></h2></div>
+        <div class="table-wrap">
+          <table id="dailyTable">
+            <thead><tr><th>Date</th><th>Total Visits</th><th>Unique IPs</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Top IPs -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head"><h2>Top Visitors <span style="font-size:.78rem;color:var(--muted);font-weight:400">(by IP, top 50)</span></h2></div>
+        <div class="table-wrap">
+          <table id="topIPsTable">
+            <thead><tr><th>IP Address</th><th>Visits</th><th>Last Seen</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Recent visits log -->
+      <div class="card">
+        <div class="card-head"><h2>Recent Visits <span style="font-size:.78rem;color:var(--muted);font-weight:400">(last 200)</span></h2></div>
+        <div class="table-wrap">
+          <table id="visitsTable">
+            <thead><tr><th>IP Address</th><th>Referrer</th><th>Browser / Device</th><th>Date &amp; Time</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- ══ SETTINGS ══ -->
@@ -449,7 +500,7 @@
     document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     if (el) el.classList.add('active');
-    const loaders = { dashboard: loadDashboard, enquiries: loadEnquiries, payments: loadPayments, events: loadEvents, photos: loadPhotos, videos: loadVideos, settings: loadSettings };
+    const loaders = { dashboard: loadDashboard, enquiries: loadEnquiries, payments: loadPayments, events: loadEvents, photos: loadPhotos, videos: loadVideos, settings: loadSettings, visitors: loadVisitors };
     if (loaders[name]) loaders[name]();
     return false;
   }
@@ -494,6 +545,9 @@
     document.getElementById('s-payments').textContent = stats.payments;
     document.getElementById('s-revenue').textContent = '₹' + stats.revenue.toLocaleString('en-IN');
     document.getElementById('s-pending').textContent = stats.pending;
+    document.getElementById('s-totalVisits').textContent = stats.totalVisits ?? '—';
+    document.getElementById('s-uniqueVisits').textContent = stats.uniqueVisits ?? '—';
+    document.getElementById('s-todayVisits').textContent = stats.todayVisits ?? '—';
 
     const enqs = await api('GET', '/api/admin/enquiries');
     if (!enqs) return;
@@ -508,6 +562,60 @@
       </tr>`;
     });
     if (!enqs.length) tbody.innerHTML = '<tr><td colspan="4" class="empty">No enquiries yet.</td></tr>';
+  }
+
+  // ── Visitors ──────────────────────────────────────────────────────────────
+  async function loadVisitors() {
+    const stats = await api('GET', '/api/admin/stats');
+    if (stats) {
+      document.getElementById('v-total').textContent  = stats.totalVisits ?? '—';
+      document.getElementById('v-unique').textContent = stats.uniqueVisits ?? '—';
+      document.getElementById('v-today').textContent  = stats.todayVisits ?? '—';
+    }
+    const data = await api('GET', '/api/admin/visitors');
+    if (!data) return;
+
+    // Daily breakdown
+    const dailyBody = document.querySelector('#dailyTable tbody');
+    dailyBody.innerHTML = '';
+    if (data.daily.length) {
+      data.daily.forEach(r => {
+        dailyBody.innerHTML += `<tr><td><strong>${r.day}</strong></td><td>${r.visits}</td><td>${r.unique_ips}</td></tr>`;
+      });
+    } else { dailyBody.innerHTML = '<tr><td colspan="3" class="empty">No data yet.</td></tr>'; }
+
+    // Top IPs
+    const topBody = document.querySelector('#topIPsTable tbody');
+    topBody.innerHTML = '';
+    if (data.topIPs.length) {
+      data.topIPs.forEach(r => {
+        topBody.innerHTML += `<tr><td><code>${r.ip_address || '—'}</code></td><td>${r.visits}</td><td>${fmt(r.last_seen)}</td></tr>`;
+      });
+    } else { topBody.innerHTML = '<tr><td colspan="3" class="empty">No data yet.</td></tr>'; }
+
+    // Recent visits
+    const recentBody = document.querySelector('#visitsTable tbody');
+    recentBody.innerHTML = '';
+    if (data.recent.length) {
+      data.recent.forEach(r => {
+        const ua = r.user_agent || '';
+        const device = /mobile|android|iphone|ipad/i.test(ua) ? '📱 Mobile' : '💻 Desktop';
+        const browser = /Chrome/i.test(ua) ? 'Chrome' : /Firefox/i.test(ua) ? 'Firefox' : /Safari/i.test(ua) ? 'Safari' : /Edge/i.test(ua) ? 'Edge' : 'Other';
+        recentBody.innerHTML += `<tr>
+          <td><code>${r.ip_address || '—'}</code></td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.referrer || '<em style="color:var(--muted)">Direct</em>'}</td>
+          <td>${device} · ${browser}</td>
+          <td>${fmt(r.visited_at)}</td>
+        </tr>`;
+      });
+    } else { recentBody.innerHTML = '<tr><td colspan="4" class="empty">No visits logged yet.</td></tr>'; }
+  }
+
+  async function clearVisitors() {
+    if (!confirm('Delete all visitor logs? This cannot be undone.')) return;
+    await api('DELETE', '/api/admin/visitors');
+    showToast('Visitor logs cleared.');
+    loadVisitors();
   }
 
   // ── Enquiries ─────────────────────────────────────────────────────────────

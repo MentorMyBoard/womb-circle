@@ -143,6 +143,14 @@ async function main() {
       key   TEXT PRIMARY KEY,
       value TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS page_visits (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      ip_address  TEXT,
+      user_agent  TEXT,
+      referrer    TEXT,
+      visited_at  TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   // Seed default settings (idempotent)
@@ -562,11 +570,32 @@ async function main() {
   });
 
   app.get('/api/admin/stats', requireAdmin, (_, res) => {
-    const enquiries = db.prepare('SELECT COUNT(*) AS c FROM enquiries').get()?.c ?? 0;
-    const payments  = db.prepare("SELECT COUNT(*) AS c FROM payments WHERE status='paid'").get()?.c ?? 0;
-    const revenue   = db.prepare("SELECT COALESCE(SUM(amount),0) AS s FROM payments WHERE status='paid'").get()?.s ?? 0;
-    const pending   = db.prepare("SELECT COUNT(*) AS c FROM payments WHERE status='created'").get()?.c ?? 0;
-    res.json({ enquiries, payments, revenue: revenue / 100, pending });
+    const enquiries    = db.prepare('SELECT COUNT(*) AS c FROM enquiries').get()?.c ?? 0;
+    const payments     = db.prepare("SELECT COUNT(*) AS c FROM payments WHERE status='paid'").get()?.c ?? 0;
+    const revenue      = db.prepare("SELECT COALESCE(SUM(amount),0) AS s FROM payments WHERE status='paid'").get()?.s ?? 0;
+    const pending      = db.prepare("SELECT COUNT(*) AS c FROM payments WHERE status='created'").get()?.c ?? 0;
+    const totalVisits  = db.prepare('SELECT COUNT(*) AS c FROM page_visits').get()?.c ?? 0;
+    const uniqueVisits = db.prepare('SELECT COUNT(DISTINCT ip_address) AS c FROM page_visits').get()?.c ?? 0;
+    const todayVisits  = db.prepare("SELECT COUNT(*) AS c FROM page_visits WHERE date(visited_at)=date('now')").get()?.c ?? 0;
+    res.json({ enquiries, payments, revenue: revenue / 100, pending, totalVisits, uniqueVisits, todayVisits });
+  });
+
+  app.get('/api/admin/visitors', requireAdmin, (_, res) => {
+    const recent = db.prepare('SELECT * FROM page_visits ORDER BY id DESC LIMIT 200').all();
+    const daily  = db.prepare(
+      "SELECT date(visited_at) AS day, COUNT(*) AS visits, COUNT(DISTINCT ip_address) AS unique_ips " +
+      "FROM page_visits GROUP BY date(visited_at) ORDER BY day DESC LIMIT 30"
+    ).all();
+    const topIPs = db.prepare(
+      "SELECT ip_address, COUNT(*) AS visits, MAX(visited_at) AS last_seen " +
+      "FROM page_visits GROUP BY ip_address ORDER BY visits DESC LIMIT 50"
+    ).all();
+    res.json({ recent, daily, topIPs });
+  });
+
+  app.delete('/api/admin/visitors', requireAdmin, (_, res) => {
+    db.exec('DELETE FROM page_visits');
+    res.json({ success: true });
   });
 
   // Events CRUD
@@ -733,7 +762,14 @@ async function main() {
   app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
   // Homepage — SSR injects photos & videos so Googlebot indexes real content
-  app.get('/', (_, res) => {
+  app.get('/', (req, res) => {
+    // Log visitor (skip bots/crawlers)
+    const ua  = req.headers['user-agent'] || '';
+    if (!/bot|crawl|spider|slurp|google|bing|yahoo|facebook|twitter|lighthouse|headless/i.test(ua)) {
+      const ip  = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
+      const ref = req.headers['referer'] || '';
+      db.prepare('INSERT INTO page_visits (ip_address, user_agent, referrer) VALUES (?, ?, ?)').run(ip, ua, ref);
+    }
     const photos = db.prepare('SELECT * FROM photos WHERE active=1 ORDER BY order_index ASC, id DESC').all();
     const videos = db.prepare('SELECT * FROM videos WHERE active=1 ORDER BY order_index ASC, id DESC').all();
     const html = htmlTemplate
