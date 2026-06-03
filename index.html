@@ -823,7 +823,8 @@
       border: 1px solid rgba(255, 255, 255, .12);
       border-radius: 16px;
       padding: 30px 24px;
-      transition: all .3s
+      transition: all .3s;
+      overflow: hidden
     }
 
     .mcard:hover {
@@ -863,13 +864,13 @@
     }
 
     .mcard-photo {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
+      width: calc(100% + 48px);
+      height: 220px;
+      margin: -30px -24px 24px -24px;
       object-fit: cover;
       object-position: top center;
-      border: 2px solid rgba(249, 159, 27, .5);
-      margin-bottom: 16px;
+      border-radius: 0;
+      border: none;
       display: block
     }
 
@@ -1888,7 +1889,7 @@
             </div>
             <div class="hstat">
               <div class="n">4<span>th</span></div>
-              <div class="l">Directors' Conclave</div>
+              <div class="l">Women Directors' Conclave</div>
             </div>
           </div>
         </div>
@@ -2278,10 +2279,15 @@
           <div class="field"><label>Message</label><textarea name="message"
               placeholder="How can we help you?"></textarea></div>
           <div class="field" style="margin-bottom:20px">
-            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-weight:400;font-size:.85rem;color:var(--muted);line-height:1.5">
+            <label
+              style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-weight:400;font-size:.85rem;color:var(--muted);line-height:1.5">
               <input type="checkbox" name="consent" required
                 style="margin-top:3px;flex-shrink:0;accent-color:var(--orange);width:15px;height:15px">
-              <span>By offering the content above, I give permission to WOMB Circle to make contact with me to receive more information and agree to the Terms of membership and the <a href="https://mentormyboard.com/privacy-policy" target="_blank" rel="noopener" style="color:var(--orange-deep)">Privacy Policy</a> on the website which is associated with MentorMyBoard</span>
+              <span>By offering the content above, I give permission to WOMB Circle to make contact with me to receive
+                more information and agree to the Terms of membership and the <a
+                  href="https://mentormyboard.com/privacy-policy" target="_blank" rel="noopener"
+                  style="color:var(--orange-deep)">Privacy Policy</a> on the website which is associated with
+                MentorMyBoard</span>
             </label>
           </div>
           <button type="submit" class="btn btn-navy"
@@ -2356,7 +2362,8 @@
             style="color:rgba(255,255,255,.4);text-decoration:underline;text-underline-offset:3px">Privacy Policy</a>
           &nbsp;&middot;&nbsp;
           <a href="https://mentormyboard.com/terms-and-condition" target="_blank" rel="noopener"
-            style="color:rgba(255,255,255,.4);text-decoration:underline;text-underline-offset:3px">Terms &amp; Conditions</a>
+            style="color:rgba(255,255,255,.4);text-decoration:underline;text-underline-offset:3px">Terms &amp;
+            Conditions</a>
         </p>
       </div>
     </div>
