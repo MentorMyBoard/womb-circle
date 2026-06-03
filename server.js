@@ -784,6 +784,9 @@ async function main() {
     res.json({ ok: true });
   });
 
+  // ── favicon.ico (Google looks here first before the <link> tag) ───────────
+  app.get('/favicon.ico', (_, res) => res.sendFile(path.join(__dirname, 'favicon.png')));
+
   // ── robots.txt ────────────────────────────────────────────────────────────
   app.get('/robots.txt', (_, res) => {
     res.setHeader('Content-Type', 'text/plain');
