@@ -862,6 +862,17 @@
       color: var(--orange)
     }
 
+    .mcard-photo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: top center;
+      border: 2px solid rgba(249, 159, 27, .5);
+      margin-bottom: 16px;
+      display: block
+    }
+
     /* ============ BENEFITS ============ */
     .ben-grid {
       display: grid;
@@ -1979,20 +1990,26 @@
       </div>
       <div class="mgrid">
         <div class="mcard reveal">
+          <img class="mcard-photo" src="/arundhati.png" alt="Arundhati Bhattacharya">
           <div class="idx">01</div>
           <h3>Arundhati Bhattacharya</h3>
-          <p class="role">Former Chairperson, State Bank of India</p><span class="sector">Banking &amp; Finance</span>
+          <p class="role">President &amp; CEO at Salesforce, South Asia | Former Chairperson, State Bank of India</p>
+          <span class="sector">Banking &amp; Finance</span>
         </div>
         <div class="mcard reveal">
+          <img class="mcard-photo" src="/shanti.png" alt="Shanti Ekambaram">
           <div class="idx">02</div>
           <h3>Shanti Ekambaram</h3>
-          <p class="role">Deputy Managing Director, Kotak Mahindra Bank</p><span class="sector">Banking
-            Leadership</span>
+          <p class="role">Director, Kotak Mahindra Capital Company Limited | Former Deputy Managing Director, Kotak
+            Mahindra Bank</p>
+          <span class="sector">Banking Leadership</span>
         </div>
         <div class="mcard reveal">
+          <img class="mcard-photo" src="/naina.png" alt="Naina Lal Kidwai">
           <div class="idx">03</div>
-          <h3>Amisha Vora</h3>
-          <p class="role">Chairperson &amp; MD, PL Capital Group</p><span class="sector">Capital Markets</span>
+          <h3>Naina Lal Kidwai</h3>
+          <p class="role">The 'First' Lady | Padma Shri Awardee | Boardroom Icon</p>
+          <span class="sector">Corporate Governance</span>
         </div>
         <div class="mcard reveal">
           <div class="idx">+</div>
@@ -2211,8 +2228,7 @@
           <h3>Join WOMB Circle</h3>
           <p>Ready to belong? Complete your membership securely and step into India's premier women board-leaders
             community.</p>
-          <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank" rel="noopener" class="btn cc-navy">Join Now via
-            Razorpay
+          <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank" rel="noopener" class="btn cc-navy">Join Now
             &rarr;</a>
         </div>
       </div>
@@ -2261,10 +2277,17 @@
           </div>
           <div class="field"><label>Message</label><textarea name="message"
               placeholder="How can we help you?"></textarea></div>
+          <div class="field" style="margin-bottom:20px">
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-weight:400;font-size:.85rem;color:var(--muted);line-height:1.5">
+              <input type="checkbox" name="consent" required
+                style="margin-top:3px;flex-shrink:0;accent-color:var(--orange);width:15px;height:15px">
+              <span>By offering the content above, I give permission to WOMB Circle to make contact with me to receive more information and agree to the Terms of membership and the <a href="https://mentormyboard.com/privacy-policy" target="_blank" rel="noopener" style="color:var(--orange-deep)">Privacy Policy</a> on the website which is associated with MentorMyBoard</span>
+            </label>
+          </div>
           <button type="submit" class="btn btn-navy"
             style="width:100%;justify-content:center;padding:15px;font-size:.95rem">Send Enquiry &rarr;</button>
           <p class="form-note">Prefer to join straightaway? <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank"
-              rel="noopener" style="color:var(--orange-deep);font-weight:700">Join WOMB Circle via Razorpay</a></p>
+              rel="noopener" style="color:var(--orange-deep);font-weight:700">Join WOMB Circle</a></p>
         </form>
       </div>
     </div>
@@ -2328,6 +2351,13 @@
       <div class="f-bottom">
         <p>&copy; 2025 WOMB Circle &middot; MentorMyBoard (ISO 9001-2015). All Rights Reserved.</p>
         <p>Women on Management and Boards</p>
+        <p>
+          <a href="https://mentormyboard.com/privacy-policy" target="_blank" rel="noopener"
+            style="color:rgba(255,255,255,.4);text-decoration:underline;text-underline-offset:3px">Privacy Policy</a>
+          &nbsp;&middot;&nbsp;
+          <a href="https://mentormyboard.com/terms-and-condition" target="_blank" rel="noopener"
+            style="color:rgba(255,255,255,.4);text-decoration:underline;text-underline-offset:3px">Terms &amp; Conditions</a>
+        </p>
       </div>
     </div>
   </footer>
