@@ -278,6 +278,81 @@ async function main() {
     });
   });
 
+  // ── Zoho CRM helpers ─────────────────────────────────────────────────────
+  async function getZohoAccessToken() {
+    const clientId     = process.env.ZOHO_CLIENT_ID;
+    const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+    let   refreshToken = process.env.ZOHO_REFRESH_TOKEN;
+    if (!refreshToken) {
+      const row = db.prepare("SELECT value FROM settings WHERE key='zoho_refresh_token'").get();
+      refreshToken = row?.value;
+    }
+    if (!clientId || !clientSecret || !refreshToken) return null;
+    const r = await axios.post('https://accounts.zoho.in/oauth/v2/token', null, {
+      params: { grant_type: 'refresh_token', client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken }
+    });
+    return r.data.access_token || null;
+  }
+
+  async function createZohoLead({ name, email, phone, role, interest, message }) {
+    try {
+      const token = await getZohoAccessToken();
+      if (!token) return;
+      const parts    = (name || '').trim().split(' ');
+      const lastName  = parts.pop() || name;
+      const firstName = parts.join(' ');
+      await axios.post('https://www.zohoapis.in/crm/v2/Leads', {
+        data: [{
+          First_Name:  firstName,
+          Last_Name:   lastName || 'Unknown',
+          Email:       email,
+          Phone:       phone || '',
+          Lead_Source: 'Web Site',
+          Designation: role || '',
+          Description: `Interest: ${interest || ''}\n\nMessage: ${message || ''}`,
+          Lead_Status: 'Not Contacted',
+          Company:     'WOMB Circle'
+        }]
+      }, { headers: { Authorization: `Zoho-oauthtoken ${token}`, 'Content-Type': 'application/json' } });
+      console.log(`Zoho Lead created: ${name} (${email})`);
+    } catch (e) {
+      console.error('Zoho Lead creation failed:', e.response?.data || e.message);
+    }
+  }
+
+  // ── Zoho OAuth callback (one-time setup) ──────────────────────────────────
+  app.get('/zoho-callback', async (req, res) => {
+    const { code, error } = req.query;
+    if (error) return res.send(`<h2>Zoho Error: ${error}</h2>`);
+    if (!code) return res.send('<h2>No authorisation code received.</h2>');
+    try {
+      const r = await axios.post('https://accounts.zoho.in/oauth/v2/token', null, {
+        params: {
+          grant_type:    'authorization_code',
+          client_id:     process.env.ZOHO_CLIENT_ID,
+          client_secret: process.env.ZOHO_CLIENT_SECRET,
+          redirect_uri:  `${SITE_URL}/zoho-callback`,
+          code
+        }
+      });
+      const { refresh_token, error: zErr } = r.data;
+      if (zErr) return res.send(`<h2>Zoho Error: ${zErr}</h2><pre>${JSON.stringify(r.data,null,2)}</pre>`);
+      if (refresh_token) {
+        db._db.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('zoho_refresh_token', ?)", [refresh_token]);
+        db._save();
+      }
+      res.send(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;max-width:600px;margin:0 auto">
+        <h2 style="color:#191970">&#10003; Zoho CRM Connected!</h2>
+        <p>WOMB Circle is now linked. All enquiries will be created as Leads in Zoho CRM automatically.</p>
+        ${refresh_token ? `<p>Also add this line to your <code>.env</code> on the server so it survives restarts:</p>
+        <code style="background:#f0f0f8;padding:12px;display:block;border-radius:6px;word-break:break-all">ZOHO_REFRESH_TOKEN=${refresh_token}</code>` : ''}
+        <p style="margin-top:24px"><a href="/admin" style="color:#191970">&#8592; Back to Admin</a></p>
+      </body></html>`);
+    } catch (e) {
+      res.send(`<h2>Token exchange failed</h2><pre>${e.response?.data ? JSON.stringify(e.response.data,null,2) : e.message}</pre>`);
+    }
+  });
+
   // ── Enquiry form ──────────────────────────────────────────────────────────
   app.post('/api/enquiry', async (req, res) => {
     const { name, email, phone, role, interest, message } = req.body;
@@ -315,6 +390,9 @@ async function main() {
     );
 
     res.json({ success: true, id: r.lastInsertRowid });
+
+    // Push lead to Zoho CRM (fire-and-forget, doesn't affect response)
+    createZohoLead({ name, email, phone, role, interest, message });
   });
 
   // ── Create Razorpay order ─────────────────────────────────────────────────
