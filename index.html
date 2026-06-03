@@ -2505,6 +2505,18 @@
     function escH(s) {
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
+
+    // Visitor tracking — fires after page load, unaffected by server-side caching
+    window.addEventListener('load', function () {
+      try {
+        fetch('/api/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ referrer: document.referrer || '' }),
+          keepalive: true
+        }).catch(function () {});
+      } catch (e) {}
+    });
   </script>
 </body>
 

@@ -762,22 +762,26 @@ async function main() {
   app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
   // Homepage — SSR injects photos & videos so Googlebot indexes real content
-  app.get('/', (req, res) => {
-    // Log visitor (skip bots/crawlers)
-    const ua  = req.headers['user-agent'] || '';
-    if (!/bot|crawl|spider|slurp|google|bing|yahoo|facebook|twitter|lighthouse|headless/i.test(ua)) {
-      const ip  = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
-      const ref = req.headers['referer'] || '';
-      db.prepare('INSERT INTO page_visits (ip_address, user_agent, referrer) VALUES (?, ?, ?)').run(ip, ua, ref);
-    }
+  app.get('/', (_, res) => {
     const photos = db.prepare('SELECT * FROM photos WHERE active=1 ORDER BY order_index ASC, id DESC').all();
     const videos = db.prepare('SELECT * FROM videos WHERE active=1 ORDER BY order_index ASC, id DESC').all();
     const html = htmlTemplate
       .replace('<!-- SSR_PHOTOS -->', renderPhotos(photos))
       .replace('<!-- SSR_VIDEOS -->', renderVideos(videos));
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'no-cache');
     res.send(html);
+  });
+
+  // ── Visitor tracking (called by client-side JS, bypass-caching safe) ───────
+  app.post('/api/track', (req, res) => {
+    const ua = req.headers['user-agent'] || '';
+    if (!/bot|crawl|spider|slurp|googlebot|bingbot|yandex|baidu|lighthouse|headless|prerender/i.test(ua)) {
+      const ip  = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
+      const ref = (req.body && req.body.referrer) || req.headers['referer'] || '';
+      db.prepare('INSERT INTO page_visits (ip_address, user_agent, referrer) VALUES (?, ?, ?)').run(ip, ua, ref);
+    }
+    res.json({ ok: true });
   });
 
   // ── robots.txt ────────────────────────────────────────────────────────────
