@@ -486,33 +486,6 @@ async function main() {
     const payEnt  = body.payload?.payment?.entity;
     const linkEnt = body.payload?.payment_link?.entity;
 
-    // ── Filter: only process payments from the WOMB Circle payment link ──────
-    const allowedId = process.env.RAZORPAY_PAYMENT_PAGE_ID || process.env.RAZORPAY_PAYMENT_LINK_ID;
-    if (allowedId) {
-      const incomingId = payEnt?.payment_page_id || payEnt?.payment_link_id ||
-                         linkEnt?.id || payEnt?.notes?.payment_page_id || '';
-      console.log(`[Webhook] ${event} — link_id: "${incomingId || 'none'}" | allowed: "${allowedId}"`);
-      if (incomingId) {
-        // We can positively identify the source — block if it's a different link
-        if (incomingId !== allowedId) {
-          console.log(`[Webhook] BLOCKED — belongs to a different payment link`);
-          return;
-        }
-      } else {
-        // payment.captured and order.paid do NOT carry link ID in their payloads.
-        // Only allow them through if they are updating a payment already recorded
-        // via the payment_link.paid event (which does carry the link ID).
-        const alreadyRecorded = paymentId
-          ? db.prepare('SELECT id FROM payments WHERE razorpay_payment_id=?').get(paymentId)
-          : null;
-        if (!alreadyRecorded) {
-          console.log(`[Webhook] SKIP ${event} — no link ID and payment not yet recorded`);
-          return;
-        }
-        console.log(`[Webhook] ALLOW ${event} — updating existing payment record`);
-      }
-    }
-
     const paymentId = payEnt?.id || '';
     const orderId   = payEnt?.order_id || '';
     const amount    = payEnt?.amount || linkEnt?.amount || 0;
