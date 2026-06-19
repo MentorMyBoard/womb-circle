@@ -118,6 +118,11 @@
     .modal h3{font-size:1.1rem;font-weight:700;color:var(--navy);margin-bottom:20px}
     .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
 
+    /* ── Filter row ── */
+    .filter-row th{padding:4px 6px!important;background:#f4f4f8}
+    .filter-row input,.filter-row select{width:100%;padding:5px 8px;border:1px solid var(--line);border-radius:5px;font-size:.73rem;background:#fff;color:var(--navy);outline:none}
+    .filter-row input:focus,.filter-row select:focus{border-color:var(--orange)}
+
     /* ── Empty state ── */
     .empty{text-align:center;padding:48px 24px;color:var(--muted)}
     .empty svg{margin:0 auto 12px;opacity:.3}
@@ -260,7 +265,21 @@
         <div class="card-head"><h2 id="paymentsCount">All Payments</h2></div>
         <div class="table-wrap">
           <table id="paymentsTable">
-            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Amount</th><th>Status</th><th>Razorpay Order</th><th>Razorpay Payment</th><th>Date</th><th></th></tr></thead>
+            <thead>
+              <tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Amount</th><th>Status</th><th>Razorpay Order</th><th>Razorpay Payment</th><th>Date</th><th></th></tr>
+              <tr class="filter-row">
+                <th></th>
+                <th><input type="text" id="pf-name"    placeholder="Name..."    oninput="filterPayments()"></th>
+                <th><input type="text" id="pf-email"   placeholder="Email..."   oninput="filterPayments()"></th>
+                <th><input type="text" id="pf-phone"   placeholder="Phone..."   oninput="filterPayments()"></th>
+                <th></th>
+                <th><select id="pf-status" onchange="filterPayments()"><option value="">All Status</option><option value="paid">Paid</option><option value="created">Pending</option><option value="failed">Failed</option></select></th>
+                <th><input type="text" id="pf-order"   placeholder="Order ID..."   oninput="filterPayments()"></th>
+                <th><input type="text" id="pf-payment" placeholder="Payment ID..." oninput="filterPayments()"></th>
+                <th></th>
+                <th></th>
+              </tr>
+            </thead>
             <tbody></tbody>
           </table>
         </div>
@@ -711,13 +730,39 @@
   }
 
   // ── Payments ──────────────────────────────────────────────────────────────
+  let allPayments = [];
+
   async function loadPayments() {
     const data = await api('GET', '/api/admin/payments');
     if (!data) return;
-    document.getElementById('paymentsCount').textContent = `All Payments (${data.length})`;
+    allPayments = data;
+    filterPayments();
+  }
+
+  function filterPayments() {
+    const name    = (document.getElementById('pf-name')?.value    || '').toLowerCase();
+    const email   = (document.getElementById('pf-email')?.value   || '').toLowerCase();
+    const phone   = (document.getElementById('pf-phone')?.value   || '').toLowerCase();
+    const status  =  document.getElementById('pf-status')?.value  || '';
+    const order   = (document.getElementById('pf-order')?.value   || '').toLowerCase();
+    const payment = (document.getElementById('pf-payment')?.value || '').toLowerCase();
+
+    const filtered = allPayments.filter(p =>
+      (!name    || (p.name    || '').toLowerCase().includes(name))    &&
+      (!email   || (p.email   || '').toLowerCase().includes(email))   &&
+      (!phone   || (p.phone   || '').toLowerCase().includes(phone))   &&
+      (!status  || p.status === status)                                &&
+      (!order   || (p.razorpay_order_id   || '').toLowerCase().includes(order))   &&
+      (!payment || (p.razorpay_payment_id || '').toLowerCase().includes(payment))
+    );
+    renderPayments(filtered);
+  }
+
+  function renderPayments(data) {
+    document.getElementById('paymentsCount').textContent = `All Payments (${data.length}${data.length !== allPayments.length ? ' of ' + allPayments.length : ''})`;
     const tbody = document.querySelector('#paymentsTable tbody');
     tbody.innerHTML = '';
-    if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No payments yet.</td></tr>'; return; }
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No payments found.</td></tr>'; return; }
     data.forEach((p, i) => {
       const badge = p.status === 'paid' ? 'badge-green' : p.status === 'created' ? 'badge-amber' : 'badge-red';
       tbody.innerHTML += `<tr>

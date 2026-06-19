@@ -626,7 +626,7 @@ async function main() {
   });
 
   app.get('/api/admin/payments', requireAdmin, (_, res) => {
-    res.json(db.prepare('SELECT * FROM payments ORDER BY id ASC').all());
+    res.json(db.prepare('SELECT * FROM payments ORDER BY id DESC').all());
   });
 
   app.delete('/api/admin/payments/:id', requireAdmin, (req, res) => {
