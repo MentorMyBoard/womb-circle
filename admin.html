@@ -718,10 +718,10 @@
     const tbody = document.querySelector('#paymentsTable tbody');
     tbody.innerHTML = '';
     if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No payments yet.</td></tr>'; return; }
-    data.forEach(p => {
+    data.forEach((p, i) => {
       const badge = p.status === 'paid' ? 'badge-green' : p.status === 'created' ? 'badge-amber' : 'badge-red';
       tbody.innerHTML += `<tr>
-        <td>${p.id}</td>
+        <td>${i + 1}</td>
         <td><strong>${p.name || '—'}</strong></td>
         <td>${p.email || '—'}</td>
         <td>${p.phone || '—'}</td>
@@ -729,7 +729,7 @@
         <td><span class="badge ${badge}">${p.status}</span></td>
         <td style="font-size:.75rem;font-family:monospace">${p.razorpay_order_id || '—'}</td>
         <td style="font-size:.75rem;font-family:monospace">${p.razorpay_payment_id || '—'}</td>
-        <td>${fmtDateTime(p.created_at)}</td>
+        <td>${fmtDateTime(p.paid_at || p.created_at)}</td>
         <td><button class="btn btn-danger btn-sm" onclick="deletePayment(${p.id})">Delete</button></td>
       </tr>`;
     });
@@ -990,10 +990,37 @@
     reader.readAsText(file);
   }
 
+  function splitCSVLine(line) {
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    cols.push(cur.trim());
+    return cols;
+  }
+
+  function normalizeDate(str) {
+    if (!str) return '';
+    str = str.trim().replace(/^"|"$/g, '');
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+    const dmy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (dmy) return `${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;
+    const mths = {jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+    const m1 = str.match(/(\d{1,2})[- ]([A-Za-z]{3})[- ,]+(\d{4})/);
+    if (m1 && mths[m1[2].toLowerCase()]) return `${m1[3]}-${mths[m1[2].toLowerCase()]}-${m1[1].padStart(2,'0')}`;
+    const m2 = str.match(/([A-Za-z]{3})[- ](\d{1,2})[,\s]+(\d{4})/);
+    if (m2 && mths[m2[1].toLowerCase()]) return `${m2[3]}-${mths[m2[1].toLowerCase()]}-${m2[2].padStart(2,'0')}`;
+    return str.slice(0, 10);
+  }
+
   function parseCSV(text) {
     const lines = text.trim().split('\n').filter(l => l.trim());
     if (lines.length < 2) return [];
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'));
+    const headers = splitCSVLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9_]/g, '_'));
     const colMap = {
       razorpay_payment_id: ['payment_id','razorpay_payment_id','id','pay_id','transaction_id'],
       name:       ['name','customer_name','full_name'],
@@ -1009,15 +1036,15 @@
       if (found) idx[key] = headers.indexOf(found);
     }
     return lines.slice(1).map(line => {
-      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      const cols = splitCSVLine(line);
       return {
-        razorpay_payment_id: idx.razorpay_payment_id !== undefined ? cols[idx.razorpay_payment_id] : '',
-        name:       idx.name      !== undefined ? cols[idx.name]      : '',
-        email:      idx.email     !== undefined ? cols[idx.email]     : '',
-        phone:      idx.phone     !== undefined ? cols[idx.phone]     : '',
-        amount_inr: idx.amount_inr !== undefined ? cols[idx.amount_inr] : '',
-        paid_at:    idx.paid_at   !== undefined ? cols[idx.paid_at]   : '',
-        status:     idx.status    !== undefined ? cols[idx.status]    : 'paid'
+        razorpay_payment_id: idx.razorpay_payment_id !== undefined ? (cols[idx.razorpay_payment_id] || '').replace(/^"|"$/g,'') : '',
+        name:       idx.name      !== undefined ? cols[idx.name]      || '' : '',
+        email:      idx.email     !== undefined ? cols[idx.email]     || '' : '',
+        phone:      idx.phone     !== undefined ? cols[idx.phone]     || '' : '',
+        amount_inr: idx.amount_inr !== undefined ? cols[idx.amount_inr] || '' : '',
+        paid_at:    normalizeDate(idx.paid_at !== undefined ? cols[idx.paid_at] : ''),
+        status:     idx.status    !== undefined ? (cols[idx.status] || 'paid').toLowerCase() : 'paid'
       };
     }).filter(r => r.razorpay_payment_id && parseFloat(r.amount_inr) > 0);
   }
