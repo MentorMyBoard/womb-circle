@@ -397,6 +397,24 @@
       cursor: pointer
     }
 
+    /* ── MMB Ecosystem Section ── */
+    #mmb-ecosystem { background: linear-gradient(140deg, #101046 0%, #191970 60%, #1a1a7a 100%); padding: 88px 0 80px }
+    #mmb-ecosystem .eco-head { text-align: center; margin-bottom: 52px }
+    #mmb-ecosystem .eco-eyebrow { display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--orange);margin-bottom:14px }
+    #mmb-ecosystem .eco-title { font-family:'Fraunces',serif;font-weight:400;font-size:clamp(1.8rem,3vw,2.6rem);line-height:1.1;color:#fff;letter-spacing:-.01em;margin:0 0 16px }
+    #mmb-ecosystem .eco-title em { font-style:italic;color:var(--orange) }
+    #mmb-ecosystem .eco-lead { font-size:.95rem;color:rgba(255,255,255,.65);max-width:500px;margin:0 auto;line-height:1.7 }
+    .mmb-cards { display:grid;grid-template-columns:repeat(4,1fr);gap:20px }
+    .mmb-card { background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:18px;padding:30px 24px 26px;text-decoration:none;color:#fff;display:flex;flex-direction:column;gap:14px;transition:background .22s,border-color .22s,transform .22s }
+    .mmb-card:hover { background:rgba(249,159,27,.1);border-color:var(--orange);transform:translateY(-5px) }
+    .mmb-card-ico { width:44px;height:44px;border-radius:12px;background:rgba(249,159,27,.18);display:flex;align-items:center;justify-content:center }
+    .mmb-card-ico svg { width:22px;height:22px;stroke:#f99f1b;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round }
+    .mmb-card h3 { font-size:1rem;font-weight:700;color:#fff;margin:0;line-height:1.3 }
+    .mmb-card p { font-size:.83rem;color:rgba(255,255,255,.65);line-height:1.65;flex:1;margin:0 }
+    .mmb-card-url { font-size:.73rem;font-weight:700;color:var(--orange);letter-spacing:.03em;margin-top:4px }
+    @media(max-width:880px){ .mmb-cards{grid-template-columns:repeat(2,1fr)} }
+    @media(max-width:480px){ .mmb-cards{grid-template-columns:1fr} }
+
     /* ============ HERO ============ */
     .hero {
       padding: 150px 0 90px;
@@ -1853,6 +1871,7 @@
         <li><a href="#photos">Photos</a></li>
         <li><a href="#videos">Videos</a></li>
         <li><a href="#join">Membership</a></li>
+        <li><a href="#mmb-ecosystem" style="color:var(--orange-deep)">Explore MMB</a></li>
       </ul>
       <div class="nav-cta">
         <a href="#contact" class="btn btn-line">Contact Us</a>
@@ -2296,6 +2315,56 @@
           <p class="form-note">Prefer to join straightaway? <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank"
               rel="noopener" style="color:var(--orange-deep);font-weight:700">Join WOMB Circle</a></p>
         </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MMB ECOSYSTEM ============ -->
+  <section id="mmb-ecosystem">
+    <div class="wrap">
+      <div class="eco-head">
+        <span class="eco-eyebrow">The MentorMyBoard Universe</span>
+        <h2 class="eco-title">Explore the <em>MMB Ecosystem</em></h2>
+        <p class="eco-lead">MentorMyBoard is India's leading Board Excellence platform. Our verticals are built to elevate board leadership across every dimension.</p>
+      </div>
+      <div class="mmb-cards">
+
+        <a href="https://mentormyboard.com" target="_blank" rel="noopener" class="mmb-card">
+          <div class="mmb-card-ico">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <h3>MentorMyBoard</h3>
+          <p>India's premier Board Excellence platform — mentoring, research and governance insights for board leaders and aspiring directors.</p>
+          <span class="mmb-card-url">mentormyboard.com &rarr;</span>
+        </a>
+
+        <a href="https://boardedu.mentormyboard.com" target="_blank" rel="noopener" class="mmb-card">
+          <div class="mmb-card-ico">
+            <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          </div>
+          <h3>Board Education</h3>
+          <p>Structured programs, certifications and learning paths designed for aspiring and sitting board directors across India.</p>
+          <span class="mmb-card-url">boardedu.mentormyboard.com &rarr;</span>
+        </a>
+
+        <a href="https://consulting.mentormyboard.com" target="_blank" rel="noopener" class="mmb-card">
+          <div class="mmb-card-ico">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+          </div>
+          <h3>Board Consulting</h3>
+          <p>Expert advisory and consulting services to strengthen board composition, governance frameworks and overall board effectiveness.</p>
+          <span class="mmb-card-url">consulting.mentormyboard.com &rarr;</span>
+        </a>
+
+        <a href="https://boardopp.mentormyboard.com" target="_blank" rel="noopener" class="mmb-card">
+          <div class="mmb-card-ico">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </div>
+          <h3>Board Opportunity</h3>
+          <p>Curated board-level openings, director listings and placement support for experienced governance professionals.</p>
+          <span class="mmb-card-url">boardopp.mentormyboard.com &rarr;</span>
+        </a>
+
       </div>
     </div>
   </section>
