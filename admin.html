@@ -250,7 +250,11 @@
     <div id="tab-payments" class="tab-content">
       <div class="page-header">
         <h1>Payments</h1>
-        <a href="/api/admin/export/payments" id="exportPaymentsBtn" class="btn btn-ghost" style="font-size:.82rem" download>⬇ Export CSV</a>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" style="font-size:.82rem" onclick="openModal('manualPaymentModal')">+ Manual Entry</button>
+          <button class="btn btn-ghost" style="font-size:.82rem" onclick="openModal('importPaymentsModal')">⬆ Import CSV</button>
+          <a href="/api/admin/export/payments" id="exportPaymentsBtn" class="btn btn-ghost" style="font-size:.82rem" download>⬇ Export CSV</a>
+        </div>
       </div>
       <div class="card">
         <div class="card-head"><h2 id="paymentsCount">All Payments</h2></div>
@@ -353,6 +357,72 @@
 </div>
 
 <!-- ══ MODALS ══ -->
+
+<!-- Manual Payment Entry Modal -->
+<div class="modal-backdrop" id="manualPaymentModal">
+  <div class="modal">
+    <h3>Add Payment Manually</h3>
+    <div class="form-row">
+      <div class="field"><label>Razorpay Payment ID *</label><input type="text" id="mp-id" placeholder="pay_XXXXXXXXXXXXXXXX"></div>
+      <div class="field"><label>Amount (₹) *</label><input type="number" id="mp-amount" placeholder="5898.82" step="0.01" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Name</label><input type="text" id="mp-name" placeholder="Member name"></div>
+      <div class="field"><label>Email</label><input type="email" id="mp-email" placeholder="member@example.com"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Phone</label><input type="text" id="mp-phone" placeholder="+919999999999"></div>
+      <div class="field"><label>Status</label>
+        <select id="mp-status" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:.9rem">
+          <option value="paid">Paid</option>
+          <option value="created">Pending</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="field"><label>Payment Date</label><input type="datetime-local" id="mp-date"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('manualPaymentModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveManualPayment()">Save Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import CSV Payments Modal -->
+<div class="modal-backdrop" id="importPaymentsModal">
+  <div class="modal" style="width:700px">
+    <h3>Import Payments from CSV</h3>
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:.8rem;color:#0369a1;line-height:1.6">
+      <strong>CSV Format (first row must be headers):</strong><br>
+      <code style="font-size:.75rem">payment_id, name, email, phone, amount_inr, date, status</code><br>
+      Amount in ₹ (e.g. 5898.82). Date as YYYY-MM-DD. Status: paid / failed.<br>
+      Duplicate Payment IDs are automatically skipped.
+      <br><a href="#" onclick="downloadPaymentTemplate();return false" style="color:#0369a1;font-weight:600">⬇ Download Template</a>
+    </div>
+    <div class="form-row single">
+      <div class="field">
+        <label>Upload CSV File or Paste Below</label>
+        <input type="file" id="imp-file" accept=".csv" onchange="readCSVFile(this)" style="margin-bottom:8px;font-size:.83rem">
+        <textarea id="imp-csv" rows="6" placeholder="payment_id,name,email,phone,amount_inr,date,status&#10;pay_XXXXXXXX,Jane Doe,jane@example.com,+919999999999,5898.82,2026-06-16,paid" style="font-family:monospace;font-size:.78rem" oninput="previewCSV()"></textarea>
+      </div>
+    </div>
+    <div id="imp-preview" style="display:none;margin-top:8px">
+      <div id="imp-summary" style="font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:8px"></div>
+      <div class="table-wrap" style="max-height:200px;overflow-y:auto">
+        <table id="imp-table" style="font-size:.78rem">
+          <thead><tr><th>Payment ID</th><th>Name</th><th>Email</th><th>Amount (₹)</th><th>Date</th><th>Status</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('importPaymentsModal');resetImport()">Cancel</button>
+      <button class="btn btn-primary" id="imp-btn" onclick="runImport()" disabled>Import</button>
+    </div>
+  </div>
+</div>
 
 <!-- Event Modal -->
 <div class="modal-backdrop" id="eventModal">
@@ -879,6 +949,126 @@
     };
     const res = await api('POST', '/api/admin/settings', body);
     if (res?.success) showToast('Settings saved!');
+  }
+
+  // ── Manual Payment Entry ─────────────────────────────────────────────────
+  async function saveManualPayment() {
+    const paymentId = document.getElementById('mp-id').value.trim();
+    const amountInr = document.getElementById('mp-amount').value.trim();
+    if (!paymentId) { showToast('Payment ID is required', true); return; }
+    if (!amountInr || isNaN(parseFloat(amountInr))) { showToast('Valid amount is required', true); return; }
+    const body = {
+      razorpay_payment_id: paymentId,
+      name:       document.getElementById('mp-name').value.trim(),
+      email:      document.getElementById('mp-email').value.trim(),
+      phone:      document.getElementById('mp-phone').value.trim(),
+      amount_inr: amountInr,
+      paid_at:    document.getElementById('mp-date').value || '',
+      status:     document.getElementById('mp-status').value
+    };
+    const res = await api('POST', '/api/admin/payments/manual', body);
+    if (res?.success) {
+      closeModal('manualPaymentModal');
+      ['mp-id','mp-name','mp-email','mp-phone','mp-amount','mp-date'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('mp-status').value = 'paid';
+      loadPayments();
+      loadDashboard();
+      showToast('Payment added successfully');
+    } else {
+      showToast(res?.error || 'Failed to save payment', true);
+    }
+  }
+
+  // ── CSV Import ────────────────────────────────────────────────────────────
+  let importedRows = [];
+
+  function readCSVFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => { document.getElementById('imp-csv').value = e.target.result; previewCSV(); };
+    reader.readAsText(file);
+  }
+
+  function parseCSV(text) {
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'));
+    const colMap = {
+      razorpay_payment_id: ['payment_id','razorpay_payment_id','id','pay_id','transaction_id'],
+      name:       ['name','customer_name','full_name'],
+      email:      ['email','customer_email','email_id'],
+      phone:      ['phone','contact','mobile','phone_number'],
+      amount_inr: ['amount_inr','amount','amount__inr_','amount_inr_','inr','fee'],
+      paid_at:    ['date','paid_at','payment_date','created_at','timestamp'],
+      status:     ['status','payment_status']
+    };
+    const idx = {};
+    for (const [key, aliases] of Object.entries(colMap)) {
+      const found = aliases.find(a => headers.includes(a));
+      if (found) idx[key] = headers.indexOf(found);
+    }
+    return lines.slice(1).map(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      return {
+        razorpay_payment_id: idx.razorpay_payment_id !== undefined ? cols[idx.razorpay_payment_id] : '',
+        name:       idx.name      !== undefined ? cols[idx.name]      : '',
+        email:      idx.email     !== undefined ? cols[idx.email]     : '',
+        phone:      idx.phone     !== undefined ? cols[idx.phone]     : '',
+        amount_inr: idx.amount_inr !== undefined ? cols[idx.amount_inr] : '',
+        paid_at:    idx.paid_at   !== undefined ? cols[idx.paid_at]   : '',
+        status:     idx.status    !== undefined ? cols[idx.status]    : 'paid'
+      };
+    }).filter(r => r.razorpay_payment_id && parseFloat(r.amount_inr) > 0);
+  }
+
+  function previewCSV() {
+    const text = document.getElementById('imp-csv').value;
+    importedRows = parseCSV(text);
+    const preview = document.getElementById('imp-preview');
+    const tbody = document.querySelector('#imp-table tbody');
+    if (!importedRows.length) { preview.style.display = 'none'; document.getElementById('imp-btn').disabled = true; return; }
+    document.getElementById('imp-summary').textContent = `${importedRows.length} valid row${importedRows.length > 1 ? 's' : ''} found — ready to import`;
+    tbody.innerHTML = importedRows.map(r => `<tr>
+      <td style="font-family:monospace">${r.razorpay_payment_id}</td>
+      <td>${r.name || '—'}</td><td>${r.email || '—'}</td>
+      <td>₹${parseFloat(r.amount_inr).toLocaleString('en-IN')}</td>
+      <td>${r.paid_at || '—'}</td>
+      <td><span class="badge ${r.status==='paid'?'badge-green':'badge-amber'}">${r.status}</span></td>
+      <td><button class="btn btn-danger btn-sm" onclick="importedRows.splice(${importedRows.indexOf(r)},1);previewCSV()">✕</button></td>
+    </tr>`).join('');
+    preview.style.display = 'block';
+    document.getElementById('imp-btn').disabled = false;
+  }
+
+  async function runImport() {
+    if (!importedRows.length) return;
+    const res = await api('POST', '/api/admin/payments/import', { rows: importedRows });
+    if (res?.success) {
+      closeModal('importPaymentsModal');
+      resetImport();
+      loadPayments();
+      loadDashboard();
+      showToast(`Imported ${res.inserted} payment${res.inserted !== 1 ? 's' : ''}${res.skipped ? ` (${res.skipped} skipped — duplicates)` : ''}`);
+    } else {
+      showToast(res?.error || 'Import failed', true);
+    }
+  }
+
+  function resetImport() {
+    document.getElementById('imp-csv').value = '';
+    document.getElementById('imp-file').value = '';
+    importedRows = [];
+    document.getElementById('imp-preview').style.display = 'none';
+    document.getElementById('imp-btn').disabled = true;
+  }
+
+  function downloadPaymentTemplate() {
+    const csv = 'payment_id,name,email,phone,amount_inr,date,status\npay_XXXXXXXXXXXXXXXX,Jane Doe,jane@example.com,+919999999999,5898.82,2026-06-16,paid';
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = 'payment_import_template.csv';
+    a.click();
   }
 
   // ── Wire export buttons with JWT token ───────────────────────────────────

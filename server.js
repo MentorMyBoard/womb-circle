@@ -634,6 +634,37 @@ async function main() {
     res.json({ success: true });
   });
 
+  app.post('/api/admin/payments/manual', requireAdmin, (req, res) => {
+    const { razorpay_payment_id, name, email, phone, amount_inr, paid_at, status } = req.body;
+    if (!razorpay_payment_id) return res.status(400).json({ error: 'Payment ID is required' });
+    const amount = Math.round(parseFloat(amount_inr || 0) * 100);
+    if (!amount) return res.status(400).json({ error: 'Valid amount is required' });
+    const existing = db.prepare('SELECT id FROM payments WHERE razorpay_payment_id=?').get(razorpay_payment_id);
+    if (existing) return res.status(409).json({ error: 'Payment ID already exists' });
+    const dateStr = paid_at ? paid_at.replace('T', ' ').slice(0, 19) : new Date().toISOString().slice(0, 19).replace('T', ' ');
+    db.prepare(`INSERT INTO payments (razorpay_payment_id, name, email, phone, amount, status, notes, paid_at) VALUES (?, ?, ?, ?, ?, ?, 'Manual entry', ?)`)
+      .run(razorpay_payment_id, name || '', email || '', phone || '', amount, status || 'paid', dateStr);
+    res.json({ success: true });
+  });
+
+  app.post('/api/admin/payments/import', requireAdmin, (req, res) => {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: 'No rows provided' });
+    let inserted = 0, skipped = 0;
+    for (const r of rows) {
+      if (!r.razorpay_payment_id) { skipped++; continue; }
+      const amount = Math.round(parseFloat(r.amount_inr || 0) * 100);
+      if (!amount) { skipped++; continue; }
+      const existing = db.prepare('SELECT id FROM payments WHERE razorpay_payment_id=?').get(r.razorpay_payment_id);
+      if (existing) { skipped++; continue; }
+      const dateStr = r.paid_at ? r.paid_at.replace('T', ' ').slice(0, 19) : new Date().toISOString().slice(0, 19).replace('T', ' ');
+      db.prepare(`INSERT INTO payments (razorpay_payment_id, name, email, phone, amount, status, notes, paid_at) VALUES (?, ?, ?, ?, ?, ?, 'CSV Import', ?)`)
+        .run(r.razorpay_payment_id, r.name || '', r.email || '', r.phone || '', amount, r.status || 'paid', dateStr);
+      inserted++;
+    }
+    res.json({ success: true, inserted, skipped });
+  });
+
   app.get('/api/admin/stats', requireAdmin, (_, res) => {
     const enquiries    = db.prepare('SELECT COUNT(*) AS c FROM enquiries').get()?.c ?? 0;
     const payments     = db.prepare("SELECT COUNT(*) AS c FROM payments WHERE status='paid'").get()?.c ?? 0;
