@@ -496,6 +496,27 @@ async function main() {
     const linkId    = linkEnt?.id || '';
     const amtFmt    = `₹${(amount / 100).toLocaleString('en-IN')}`;
 
+    // ── Filter: only process WOMB Circle payment page ─────────────────────
+    const allowedPageId = process.env.RAZORPAY_PAYMENT_PAGE_ID;
+    if (allowedPageId) {
+      // payment_link.paid carries linkEnt.id; payment.captured may carry payEnt.payment_page_id
+      const incomingPageId = linkEnt?.id || payEnt?.payment_page_id || payEnt?.payment_link_id || '';
+      if (incomingPageId) {
+        if (incomingPageId !== allowedPageId) {
+          console.log(`[Webhook] BLOCKED — page ${incomingPageId} is not WOMB Circle`);
+          return;
+        }
+      } else {
+        // payment.captured / order.paid don't always carry the page ID.
+        // Allow only if the payment was already recorded via a prior payment_link.paid event.
+        const recorded = paymentId ? db.prepare('SELECT id FROM payments WHERE razorpay_payment_id=?').get(paymentId) : null;
+        if (!recorded) {
+          console.log(`[Webhook] SKIP ${event} — no page ID match and payment not yet in WOMB records`);
+          return;
+        }
+      }
+    }
+
     if (event === 'payment.captured' || event === 'payment_link.paid' || event === 'order.paid') {
       const notes = linkId ? `Payment Link: ${linkId}` : `Event: ${event}`;
 
