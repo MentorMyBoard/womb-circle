@@ -75,7 +75,7 @@
     .hero-img-badge{position:absolute;bottom:20px;left:20px;background:rgba(10,10,50,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 18px;display:flex;flex-direction:column;gap:3px}
     .hero-img-badge .badge-num{font-size:1.4rem;font-weight:800;color:var(--orange)}
     .hero-img-badge .badge-label{font-size:.72rem;color:rgba(255,255,255,.65);font-weight:500}
-    .hero-logo{width:180px;margin-bottom:20px}
+    .hero-logo{width:260px;margin-bottom:20px}
 
     /* ── STATS BAR ── */
     .stats-bar{background:var(--orange);padding:20px 0}
@@ -236,9 +236,12 @@
   <nav class="prog-nav">
     <div class="prog-nav-inner">
       <div class="prog-nav-logo">
-        <a href="/"><img src="/favicon.png" alt="WOMB Circle" style="height:38px"></a>
-        <span style="width:1px;height:28px;background:rgba(255,255,255,.15)"></span>
-        <img src="/WOMB_Logo.png" alt="WOMB Program" style="height:34px">
+        <a href="/" style="display:flex;align-items:center;gap:8px;font-size:.75rem;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.03em;transition:color .2s" onmouseover="this.style.color='rgba(255,255,255,.85)'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          WOMB Circle
+        </a>
+        <span style="width:1px;height:24px;background:rgba(255,255,255,.12)"></span>
+        <img src="/WOMB_Logo.png" alt="WOMB™ Program" style="height:52px;width:auto">
       </div>
       <div class="prog-nav-links">
         <a href="#why-womb">Why WOMB</a>
