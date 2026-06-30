@@ -198,6 +198,10 @@
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
         Videos
       </a>
+      <a href="#" onclick="showTab('womb',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        WOMB Program
+      </a>
       <div class="nav-section">Config</div>
       <a href="#" onclick="showTab('settings',this)">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
@@ -372,6 +376,41 @@
       </div>
     </div>
 
+    <!-- ══ WOMB PROGRAM ══ -->
+    <div id="tab-womb" class="tab-content">
+      <div class="page-header">
+        <h1>WOMB Program</h1>
+        <a href="/womb-program" target="_blank" class="btn btn-ghost" style="font-size:.82rem">View Page ↗</a>
+      </div>
+
+      <div class="form-section" style="margin-bottom:24px">
+        <h3>Apply CTA Settings</h3>
+        <p style="color:var(--muted);font-size:.83rem;margin-bottom:18px">Controls the "Apply" button text and link shown on the WOMB Program page hero and CTA section.</p>
+        <div class="form-row">
+          <div class="field"><label>CTA Button Text</label><input type="text" id="womb-cta-text" placeholder="Apply for Cohort 3 — Now Open"></div>
+          <div class="field"><label>Apply URL</label><input type="url" id="womb-apply-url" placeholder="https://forms.gle/... or Razorpay link"></div>
+        </div>
+        <div class="form-row single">
+          <div class="field"><label>Brochure Download URL (optional)</label><input type="url" id="womb-brochure-url" placeholder="https://drive.google.com/..."></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveWombSettings()">Save CTA Settings</button>
+      </div>
+
+      <div class="form-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+          <div>
+            <h3 style="margin-bottom:4px">Cohort / Batch Management</h3>
+            <p style="color:var(--muted);font-size:.83rem">Add past and current WOMB cohorts. Active batch CTA overrides the global apply URL above.</p>
+          </div>
+          <button class="btn btn-primary" style="font-size:.82rem" onclick="openModal('wombBatchModal');clearWombBatchForm()">+ Add Batch</button>
+        </div>
+        <table id="wombBatchTable">
+          <thead><tr><th>#</th><th>Batch Name</th><th>Cohort</th><th>Period</th><th>Status</th><th>Participants</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -533,6 +572,42 @@
   </div>
 </div>
 
+<!-- WOMB Batch Modal -->
+<div class="modal-backdrop" id="wombBatchModal">
+  <div class="modal">
+    <h3 id="wombBatchModalTitle">Add WOMB Batch</h3>
+    <input type="hidden" id="wb-id">
+    <div class="form-row">
+      <div class="field"><label>Batch Name *</label><input type="text" id="wb-name" placeholder="WOMB Cohort 2 — 2025"></div>
+      <div class="field"><label>Cohort Number</label><input type="number" id="wb-cohort" placeholder="2" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Batch Period</label><input type="text" id="wb-period" placeholder="Jan–Mar 2025"></div>
+      <div class="field"><label>Status</label>
+        <select id="wb-status" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:.9rem">
+          <option value="completed">Completed</option>
+          <option value="active">Currently Running</option>
+          <option value="upcoming">Upcoming</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>No. of Participants</label><input type="number" id="wb-participants" placeholder="24" min="0"></div>
+      <div class="field"><label>Display Order</label><input type="number" id="wb-order" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row single">
+      <div class="field"><label>Apply URL (for active/upcoming batches)</label><input type="url" id="wb-apply-url" placeholder="https://forms.gle/... or Razorpay link"></div>
+    </div>
+    <div class="form-row single">
+      <div class="field"><label>Highlights / Description</label><textarea id="wb-highlights" rows="3" placeholder="Key highlights, notable participants, themes covered..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('wombBatchModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWombBatch()">Save Batch</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -589,7 +664,7 @@
     document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     if (el) el.classList.add('active');
-    const loaders = { dashboard: loadDashboard, enquiries: loadEnquiries, payments: loadPayments, events: loadEvents, photos: loadPhotos, videos: loadVideos, settings: loadSettings, visitors: loadVisitors };
+    const loaders = { dashboard: loadDashboard, enquiries: loadEnquiries, payments: loadPayments, events: loadEvents, photos: loadPhotos, videos: loadVideos, settings: loadSettings, visitors: loadVisitors, womb: loadWomb };
     if (loaders[name]) loaders[name]();
     return false;
   }
@@ -987,6 +1062,8 @@
     document.getElementById('set-fee-label').value = data.membership_fee_label || '';
   }
 
+  function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
   async function saveSettings() {
     const body = {
       membership_fee_paise: document.getElementById('set-fee-paise').value,
@@ -994,6 +1071,105 @@
     };
     const res = await api('POST', '/api/admin/settings', body);
     if (res?.success) showToast('Settings saved!');
+  }
+
+  // ── WOMB Program ──────────────────────────────────────────────────────────
+  async function loadWomb() {
+    const data = await api('GET', '/api/admin/settings');
+    if (data) {
+      document.getElementById('womb-cta-text').value = data.womb_apply_cta || '';
+      document.getElementById('womb-apply-url').value = data.womb_apply_url || '';
+      document.getElementById('womb-brochure-url').value = data.womb_brochure_url || '';
+    }
+    const batches = await api('GET', '/api/admin/womb-batches');
+    renderWombBatches(batches || []);
+  }
+
+  async function saveWombSettings() {
+    const res = await api('POST', '/api/admin/settings', {
+      womb_apply_cta: document.getElementById('womb-cta-text').value,
+      womb_apply_url: document.getElementById('womb-apply-url').value,
+      womb_brochure_url: document.getElementById('womb-brochure-url').value
+    });
+    if (res?.success) showToast('WOMB settings saved!');
+  }
+
+  function renderWombBatches(batches) {
+    const statusLabel = { active: '🟢 Running', upcoming: '🔵 Upcoming', completed: '✅ Completed' };
+    const tbody = document.querySelector('#wombBatchTable tbody');
+    tbody.innerHTML = '';
+    if (!batches.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">No batches yet. Add your first cohort!</td></tr>'; return; }
+    batches.forEach(function(b, i) {
+      tbody.innerHTML += '<tr>' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td style="font-weight:600">' + escH(b.batch_name) + '</td>' +
+        '<td>' + (b.cohort_number || '—') + '</td>' +
+        '<td>' + (escH(b.batch_period) || '—') + '</td>' +
+        '<td>' + (statusLabel[b.status] || b.status) + '</td>' +
+        '<td>' + (b.participants || '—') + '</td>' +
+        '<td style="display:flex;gap:6px">' +
+          '<button class="btn btn-ghost btn-sm" onclick="editWombBatch(' + JSON.stringify(b).replace(/"/g,'&quot;') + ')">Edit</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="deleteWombBatch(' + b.id + ')">Delete</button>' +
+        '</td>' +
+      '</tr>';
+    });
+  }
+
+  function clearWombBatchForm() {
+    document.getElementById('wb-id').value = '';
+    document.getElementById('wb-name').value = '';
+    document.getElementById('wb-cohort').value = '';
+    document.getElementById('wb-period').value = '';
+    document.getElementById('wb-status').value = 'completed';
+    document.getElementById('wb-participants').value = '';
+    document.getElementById('wb-order').value = '';
+    document.getElementById('wb-apply-url').value = '';
+    document.getElementById('wb-highlights').value = '';
+    document.getElementById('wombBatchModalTitle').textContent = 'Add WOMB Batch';
+  }
+
+  function editWombBatch(b) {
+    document.getElementById('wb-id').value = b.id;
+    document.getElementById('wb-name').value = b.batch_name || '';
+    document.getElementById('wb-cohort').value = b.cohort_number || '';
+    document.getElementById('wb-period').value = b.batch_period || '';
+    document.getElementById('wb-status').value = b.status || 'completed';
+    document.getElementById('wb-participants').value = b.participants || '';
+    document.getElementById('wb-order').value = b.order_index || '';
+    document.getElementById('wb-apply-url').value = b.apply_url || '';
+    document.getElementById('wb-highlights').value = b.highlights || '';
+    document.getElementById('wombBatchModalTitle').textContent = 'Edit WOMB Batch';
+    openModal('wombBatchModal');
+  }
+
+  async function saveWombBatch() {
+    const id = document.getElementById('wb-id').value;
+    const body = {
+      batch_name: document.getElementById('wb-name').value.trim(),
+      cohort_number: parseInt(document.getElementById('wb-cohort').value) || 0,
+      batch_period: document.getElementById('wb-period').value.trim(),
+      status: document.getElementById('wb-status').value,
+      participants: parseInt(document.getElementById('wb-participants').value) || 0,
+      order_index: parseInt(document.getElementById('wb-order').value) || 0,
+      apply_url: document.getElementById('wb-apply-url').value.trim(),
+      highlights: document.getElementById('wb-highlights').value.trim(),
+      active: 1
+    };
+    if (!body.batch_name) { showToast('Batch name is required', true); return; }
+    const res = id
+      ? await api('PUT', '/api/admin/womb-batches/' + id, body)
+      : await api('POST', '/api/admin/womb-batches', body);
+    if (res?.success) {
+      closeModal('wombBatchModal');
+      showToast(id ? 'Batch updated!' : 'Batch added!');
+      loadWomb();
+    }
+  }
+
+  async function deleteWombBatch(id) {
+    if (!confirm('Delete this batch?')) return;
+    const res = await api('DELETE', '/api/admin/womb-batches/' + id);
+    if (res?.success) { showToast('Batch deleted'); loadWomb(); }
   }
 
   // ── Manual Payment Entry ─────────────────────────────────────────────────

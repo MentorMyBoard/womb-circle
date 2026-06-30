@@ -151,12 +151,29 @@ async function main() {
       referrer    TEXT,
       visited_at  TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS womb_batches (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      batch_name     TEXT NOT NULL,
+      cohort_number  INTEGER DEFAULT 0,
+      batch_period   TEXT,
+      status         TEXT DEFAULT 'completed',
+      participants   INTEGER DEFAULT 0,
+      highlights     TEXT,
+      apply_url      TEXT,
+      active         INTEGER DEFAULT 1,
+      order_index    INTEGER DEFAULT 0,
+      created_at     TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   // Seed default settings (idempotent)
   const defaultFee = process.env.MEMBERSHIP_FEE_PAISE || '500000';
   db._db.run("INSERT OR IGNORE INTO settings (key, value) VALUES ('membership_fee_paise', ?)", [defaultFee]);
   db._db.run("INSERT OR IGNORE INTO settings (key, value) VALUES ('membership_fee_label', '₹5,000')");
+  db._db.run("INSERT OR IGNORE INTO settings (key, value) VALUES ('womb_apply_url', '')");
+  db._db.run("INSERT OR IGNORE INTO settings (key, value) VALUES ('womb_apply_cta', 'Apply for the Next Cohort')");
+  db._db.run("INSERT OR IGNORE INTO settings (key, value) VALUES ('womb_brochure_url', '')");
   db._save();
 
   // ── Razorpay ──────────────────────────────────────────────────────────────
@@ -269,13 +286,23 @@ async function main() {
   });
 
   app.get('/api/settings/public', (_, res) => {
-    const fee   = db.prepare("SELECT value FROM settings WHERE key='membership_fee_paise'").get();
-    const label = db.prepare("SELECT value FROM settings WHERE key='membership_fee_label'").get();
+    const fee        = db.prepare("SELECT value FROM settings WHERE key='membership_fee_paise'").get();
+    const label      = db.prepare("SELECT value FROM settings WHERE key='membership_fee_label'").get();
+    const applyUrl   = db.prepare("SELECT value FROM settings WHERE key='womb_apply_url'").get();
+    const applyCta   = db.prepare("SELECT value FROM settings WHERE key='womb_apply_cta'").get();
+    const brochureUrl= db.prepare("SELECT value FROM settings WHERE key='womb_brochure_url'").get();
     res.json({
       membership_fee_paise: fee ? parseInt(fee.value) : 500000,
       membership_fee_label: label ? label.value : '₹5,000',
-      razorpay_key_id:      process.env.RAZORPAY_KEY_ID || ''
+      razorpay_key_id:      process.env.RAZORPAY_KEY_ID || '',
+      womb_apply_url:       applyUrl ? applyUrl.value : '',
+      womb_apply_cta:       applyCta ? applyCta.value : 'Apply for the Next Cohort',
+      womb_brochure_url:    brochureUrl ? brochureUrl.value : ''
     });
+  });
+
+  app.get('/api/womb-batches', (_, res) => {
+    res.json(db.prepare('SELECT * FROM womb_batches WHERE active=1 ORDER BY order_index ASC, id DESC').all());
   });
 
   // ── Zoho CRM helpers ─────────────────────────────────────────────────────
@@ -804,9 +831,40 @@ async function main() {
   });
 
   app.post('/api/admin/settings', requireAdmin, (req, res) => {
-    const { membership_fee_paise, membership_fee_label } = req.body;
+    const { membership_fee_paise, membership_fee_label, womb_apply_url, womb_apply_cta, womb_brochure_url } = req.body;
     if (membership_fee_paise) db._db.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('membership_fee_paise', ?)", [String(parseInt(membership_fee_paise))]);
     if (membership_fee_label) db._db.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('membership_fee_label', ?)", [membership_fee_label]);
+    if (womb_apply_url  !== undefined) db._db.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('womb_apply_url', ?)", [womb_apply_url]);
+    if (womb_apply_cta  !== undefined) db._db.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('womb_apply_cta', ?)", [womb_apply_cta]);
+    if (womb_brochure_url !== undefined) db._db.run("INSERT OR REPLACE INTO settings (key, value) VALUES ('womb_brochure_url', ?)", [womb_brochure_url]);
+    db._save();
+    res.json({ success: true });
+  });
+
+  // ── WOMB Program batch CRUD ───────────────────────────────────────────────
+  app.get('/api/admin/womb-batches', requireAdmin, (_, res) => {
+    res.json(db.prepare('SELECT * FROM womb_batches ORDER BY order_index ASC, id DESC').all());
+  });
+
+  app.post('/api/admin/womb-batches', requireAdmin, (req, res) => {
+    const { batch_name, cohort_number, batch_period, status, participants, highlights, apply_url, order_index } = req.body;
+    if (!batch_name) return res.status(400).json({ error: 'batch_name required' });
+    const r = db.prepare(`INSERT INTO womb_batches (batch_name, cohort_number, batch_period, status, participants, highlights, apply_url, order_index) VALUES (?,?,?,?,?,?,?,?)`)
+      .run(batch_name, cohort_number || 0, batch_period || '', status || 'completed', participants || 0, highlights || '', apply_url || '', order_index || 0);
+    db._save();
+    res.json({ success: true, id: r.lastInsertRowid });
+  });
+
+  app.put('/api/admin/womb-batches/:id', requireAdmin, (req, res) => {
+    const { batch_name, cohort_number, batch_period, status, participants, highlights, apply_url, active, order_index } = req.body;
+    db.prepare(`UPDATE womb_batches SET batch_name=?, cohort_number=?, batch_period=?, status=?, participants=?, highlights=?, apply_url=?, active=?, order_index=? WHERE id=?`)
+      .run(batch_name, cohort_number || 0, batch_period || '', status || 'completed', participants || 0, highlights || '', apply_url || '', active ?? 1, order_index || 0, req.params.id);
+    db._save();
+    res.json({ success: true });
+  });
+
+  app.delete('/api/admin/womb-batches/:id', requireAdmin, (req, res) => {
+    db.prepare('UPDATE womb_batches SET active=0 WHERE id=?').run(req.params.id);
     db._save();
     res.json({ success: true });
   });
@@ -877,6 +935,7 @@ async function main() {
 
   // ── Page routes ───────────────────────────────────────────────────────────
   app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+  app.get('/womb-program', (_, res) => res.sendFile(path.join(__dirname, 'womb-program.html')));
 
   // Homepage — SSR injects photos & videos so Googlebot indexes real content
   app.get('/', (_, res) => {
