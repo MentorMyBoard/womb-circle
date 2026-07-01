@@ -531,8 +531,8 @@ async function main() {
     const paymentId = payEnt?.id || '';
     const orderId   = payEnt?.order_id || '';
     const amount    = payEnt?.amount || linkEnt?.amount || 0;
-    const email     = payEnt?.email     || linkEnt?.customer?.email   || '';
-    const phone     = payEnt?.contact   || linkEnt?.customer?.contact || '';
+    const email     = payEnt?.email     || payEnt?.notes?.email || linkEnt?.customer?.email   || '';
+    const phone     = payEnt?.contact   || payEnt?.notes?.phone || linkEnt?.customer?.contact || '';
     const name      = payEnt?.notes?.name || payEnt?.notes?.['Name'] ||
                       linkEnt?.customer?.name || '';
     const linkId    = linkEnt?.id || '';
@@ -565,35 +565,48 @@ async function main() {
           notes:           payEnt?.notes
         }));
 
-        // Allow only if the payment was already recorded via a prior event.
-        // Razorpay Payment Pages (pl_) never fire payment_link.paid, so we cannot
-        // verify via page ID. Save as pending_review for admin to confirm — no
-        // customer email is sent until admin approves.
+        // Distinguish WOMB Circle Payment Page vs MentorMyBoard API payments
+        // by inspecting the payment notes set at order-creation time.
+        // MMB always sets notes.type / notes.portal / notes.deliverable (programmatic).
+        // WOMB Circle Payment Page only sets notes.name, notes.email, notes.phone (customer form).
         const recorded = paymentId ? db.prepare('SELECT id FROM payments WHERE razorpay_payment_id=?').get(paymentId) : null;
         if (!recorded) {
-          console.log(`[Webhook] PENDING ${event} — saving for admin review`);
-          if (paymentId) {
-            db.prepare(`INSERT INTO payments
-              (razorpay_payment_id, razorpay_order_id, name, email, phone, amount, status, notes, paid_at)
-              VALUES (?, ?, ?, ?, ?, ?, 'pending_review', ?, datetime('now'))`)
-              .run(paymentId, orderId, name, email, phone, amount, `[Pending Review] ${event}`);
+          const notesObj = payEnt?.notes || {};
+          const isMMB = !!(notesObj.type || notesObj.portal || notesObj.deliverable || notesObj.buyer_name);
+          const isWOMB = !!(notesObj.name || notesObj['Name']) && !isMMB;
+
+          if (isMMB) {
+            console.log(`[Webhook] SKIP ${event} — MentorMyBoard payment (type:${notesObj.type||'—'} portal:${notesObj.portal||'—'})`);
+            return;
           }
-          notifyAdmin(
-            `⚠️ Possible WOMB payment pending review — ${event}`,
-            `<div style="font-family:sans-serif;padding:24px">
-              <h3 style="color:#e67e22">Payment saved for review — no confirmation sent yet</h3>
-              <p>A <strong>${event}</strong> webhook arrived with no Payment Page ID. It has been saved with status <strong>pending_review</strong> in the Admin panel.</p>
-              <table style="border-collapse:collapse;font-size:.9rem">
-                <tr><td style="padding:4px 12px 4px 0"><strong>Payment ID</strong></td><td>${paymentId || '—'}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0"><strong>Order ID</strong></td><td>${orderId || '—'}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0"><strong>Amount</strong></td><td>${amtFmt}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0"><strong>Email</strong></td><td>${email || '—'}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0"><strong>Name</strong></td><td>${name || '—'}</td></tr>
-              </table>
-              <p style="margin-top:16px">Go to <strong>Admin → Payments</strong> and click <strong>Confirm</strong> if this is a real WOMB Circle payment. This will send the welcome email to the member.</p>
-            </div>`
-          );
-          return;
+
+          if (isWOMB) {
+            console.log(`[Webhook] ACCEPT ${event} — WOMB Circle Payment Page (name: ${name})`);
+            // Fall through to the standard payment processing below (saves + sends welcome email)
+          } else {
+            // Unknown source — save for admin review, no customer email
+            console.log(`[Webhook] PENDING ${event} — unknown source, saving for admin review`);
+            if (paymentId) {
+              db.prepare(`INSERT INTO payments
+                (razorpay_payment_id, razorpay_order_id, name, email, phone, amount, status, notes, paid_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'pending_review', ?, datetime('now'))`)
+                .run(paymentId, orderId, name, email, phone, amount, `[Pending Review] ${event}`);
+            }
+            notifyAdmin(
+              `⚠️ Unknown payment pending review — ${event}`,
+              `<div style="font-family:sans-serif;padding:24px">
+                <h3 style="color:#e67e22">Payment saved for review — no email sent yet</h3>
+                <p>A <strong>${event}</strong> webhook arrived with no Payment Page ID and unrecognised notes. Saved as <strong>pending_review</strong> in Admin.</p>
+                <table style="border-collapse:collapse;font-size:.9rem">
+                  <tr><td style="padding:4px 12px 4px 0"><strong>Payment ID</strong></td><td>${paymentId || '—'}</td></tr>
+                  <tr><td style="padding:4px 12px 4px 0"><strong>Amount</strong></td><td>${amtFmt}</td></tr>
+                  <tr><td style="padding:4px 12px 4px 0"><strong>Email</strong></td><td>${email || '—'}</td></tr>
+                  <tr><td style="padding:4px 12px 4px 0"><strong>Notes</strong></td><td><pre style="font-size:.78rem">${JSON.stringify(notesObj, null, 2)}</pre></td></tr>
+                </table>
+              </div>`
+            );
+            return;
+          }
         }
       }
     }
