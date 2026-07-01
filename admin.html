@@ -277,7 +277,7 @@
                 <th><input type="text" id="pf-email"   placeholder="Email..."   oninput="filterPayments()"></th>
                 <th><input type="text" id="pf-phone"   placeholder="Phone..."   oninput="filterPayments()"></th>
                 <th></th>
-                <th><select id="pf-status" onchange="filterPayments()"><option value="">All Status</option><option value="paid">Paid</option><option value="created">Pending</option><option value="failed">Failed</option></select></th>
+                <th><select id="pf-status" onchange="filterPayments()"><option value="">All Status</option><option value="paid">Paid</option><option value="pending_review">Needs Review</option><option value="created">Pending</option><option value="failed">Failed</option></select></th>
                 <th><input type="text" id="pf-order"   placeholder="Order ID..."   oninput="filterPayments()"></th>
                 <th><input type="text" id="pf-payment" placeholder="Payment ID..." oninput="filterPayments()"></th>
                 <th></th>
@@ -875,18 +875,23 @@
     tbody.innerHTML = '';
     if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No payments found.</td></tr>'; return; }
     data.forEach((p, i) => {
-      const badge = p.status === 'paid' ? 'badge-green' : p.status === 'created' ? 'badge-amber' : 'badge-red';
-      tbody.innerHTML += `<tr>
+      const isPending = p.status === 'pending_review';
+      const badge = p.status === 'paid' ? 'badge-green' : isPending ? 'badge-amber' : p.status === 'created' ? 'badge-amber' : 'badge-red';
+      const badgeLabel = isPending ? '⚠ Needs Review' : p.status;
+      const actionBtns = isPending
+        ? `<button class="btn btn-sm" style="background:#27ae60;color:#fff;margin-right:4px" onclick="confirmPayment(${p.id})">Confirm &amp; Send Email</button><button class="btn btn-danger btn-sm" onclick="deletePayment(${p.id})">Delete</button>`
+        : `<button class="btn btn-danger btn-sm" onclick="deletePayment(${p.id})">Delete</button>`;
+      tbody.innerHTML += `<tr${isPending ? ' style="background:#fffbf0"' : ''}>
         <td>${i + 1}</td>
         <td><strong>${p.name || '—'}</strong></td>
         <td>${p.email || '—'}</td>
         <td>${p.phone || '—'}</td>
         <td><strong>${p.amount ? rupees(p.amount) : '—'}</strong></td>
-        <td><span class="badge ${badge}">${p.status}</span></td>
+        <td><span class="badge ${badge}">${badgeLabel}</span></td>
         <td style="font-size:.75rem;font-family:monospace">${p.razorpay_order_id || '—'}</td>
         <td style="font-size:.75rem;font-family:monospace">${p.razorpay_payment_id || '—'}</td>
         <td>${fmtDateTime(p.paid_at || p.created_at)}</td>
-        <td><button class="btn btn-danger btn-sm" onclick="deletePayment(${p.id})">Delete</button></td>
+        <td>${actionBtns}</td>
       </tr>`;
     });
   }
@@ -895,6 +900,12 @@
     if (!confirm('Delete this payment record? This cannot be undone.')) return;
     const res = await api('DELETE', '/api/admin/payments/' + id);
     if (res?.success) { loadPayments(); showToast('Payment deleted'); }
+  }
+
+  async function confirmPayment(id) {
+    if (!confirm('Confirm this payment and send the welcome email to the member?')) return;
+    const res = await api('POST', `/api/admin/payments/${id}/confirm`);
+    if (res?.success) { loadPayments(); showToast('Payment confirmed — welcome email sent!'); }
   }
 
   // ── Events ────────────────────────────────────────────────────────────────

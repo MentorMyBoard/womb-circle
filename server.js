@@ -565,16 +565,24 @@ async function main() {
           notes:           payEnt?.notes
         }));
 
-        // Allow only if the payment was already recorded via a prior payment_link.paid event.
+        // Allow only if the payment was already recorded via a prior event.
+        // Razorpay Payment Pages (pl_) never fire payment_link.paid, so we cannot
+        // verify via page ID. Save as pending_review for admin to confirm — no
+        // customer email is sent until admin approves.
         const recorded = paymentId ? db.prepare('SELECT id FROM payments WHERE razorpay_payment_id=?').get(paymentId) : null;
         if (!recorded) {
-          console.log(`[Webhook] SKIP ${event} — no page ID match and payment not yet in WOMB records`);
-          // Alert admin so no payment is silently missed
+          console.log(`[Webhook] PENDING ${event} — saving for admin review`);
+          if (paymentId) {
+            db.prepare(`INSERT INTO payments
+              (razorpay_payment_id, razorpay_order_id, name, email, phone, amount, status, notes, paid_at)
+              VALUES (?, ?, ?, ?, ?, ?, 'pending_review', ?, datetime('now'))`)
+              .run(paymentId, orderId, name, email, phone, amount, `[Pending Review] ${event}`);
+          }
           notifyAdmin(
-            `⚠️ Possible missed WOMB payment — ${event}`,
+            `⚠️ Possible WOMB payment pending review — ${event}`,
             `<div style="font-family:sans-serif;padding:24px">
-              <h3 style="color:#c0392b">Payment event skipped — manual review needed</h3>
-              <p>A <strong>${event}</strong> webhook arrived with no Payment Page ID and no matching DB record.</p>
+              <h3 style="color:#e67e22">Payment saved for review — no confirmation sent yet</h3>
+              <p>A <strong>${event}</strong> webhook arrived with no Payment Page ID. It has been saved with status <strong>pending_review</strong> in the Admin panel.</p>
               <table style="border-collapse:collapse;font-size:.9rem">
                 <tr><td style="padding:4px 12px 4px 0"><strong>Payment ID</strong></td><td>${paymentId || '—'}</td></tr>
                 <tr><td style="padding:4px 12px 4px 0"><strong>Order ID</strong></td><td>${orderId || '—'}</td></tr>
@@ -582,7 +590,7 @@ async function main() {
                 <tr><td style="padding:4px 12px 4px 0"><strong>Email</strong></td><td>${email || '—'}</td></tr>
                 <tr><td style="padding:4px 12px 4px 0"><strong>Name</strong></td><td>${name || '—'}</td></tr>
               </table>
-              <p style="margin-top:16px">If this looks like a WOMB Circle payment, please add it manually in the Admin → Payments section.</p>
+              <p style="margin-top:16px">Go to <strong>Admin → Payments</strong> and click <strong>Confirm</strong> if this is a real WOMB Circle payment. This will send the welcome email to the member.</p>
             </div>`
           );
           return;
@@ -725,6 +733,35 @@ async function main() {
 
   app.delete('/api/admin/payments/:id', requireAdmin, (req, res) => {
     db.prepare('DELETE FROM payments WHERE id=?').run(req.params.id);
+    res.json({ success: true });
+  });
+
+  app.post('/api/admin/payments/:id/confirm', requireAdmin, (req, res) => {
+    const row = db.prepare('SELECT * FROM payments WHERE id=?').get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    db.prepare(`UPDATE payments SET status='paid', notes=? WHERE id=?`)
+      .run((row.notes || '').replace('[Pending Review]', '[Confirmed]'), row.id);
+    const amtFmt = `₹${((row.amount || 0) / 100).toLocaleString('en-IN')}`;
+    if (row.email) {
+      sendBrevoEmail({
+        to: row.email, toName: row.name || row.email,
+        subject: 'Welcome to WOMB Circle — Payment Confirmed!',
+        htmlContent: `
+          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px">
+            <h2 style="color:#191970">Welcome to WOMB Circle${row.name ? ', ' + row.name : ''}!</h2>
+            <p style="color:#5d5d7a;line-height:1.6">Your membership payment of <strong>${amtFmt}</strong> has been received.
+            You are now part of India's premier community of women board leaders.</p>
+            <div style="background:#f6f6fb;border-radius:8px;padding:16px 20px;margin:24px 0">
+              <strong>Payment ID:</strong> ${row.razorpay_payment_id || '—'}<br>
+              <strong>Amount:</strong> ${amtFmt}<br>
+              <strong>Status:</strong> ✅ Confirmed
+            </div>
+            <p style="color:#5d5d7a;line-height:1.6">Our team will reach out within 1–2 business days to complete your onboarding.</p>
+            <p style="color:#5d5d7a;font-size:.85rem">— The WOMB Circle Team<br>
+            <a href="${SITE_URL}" style="color:#f99f1b">mmbwombcircle.com</a></p>
+          </div>`
+      });
+    }
     res.json({ success: true });
   });
 
