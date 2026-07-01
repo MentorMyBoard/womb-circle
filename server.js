@@ -541,8 +541,12 @@ async function main() {
     // ── Filter: only process WOMB Circle payment page ─────────────────────
     const allowedPageId = process.env.RAZORPAY_PAYMENT_PAGE_ID;
     if (allowedPageId) {
-      // payment_link.paid carries linkEnt.id; payment.captured may carry payEnt.payment_page_id
-      const incomingPageId = linkEnt?.id || payEnt?.payment_page_id || payEnt?.payment_link_id || '';
+      // payment_link.paid carries linkEnt.id; payment.captured may carry payment_link_id or invoice_id
+      const incomingPageId = linkEnt?.id
+        || payEnt?.payment_page_id
+        || payEnt?.payment_link_id
+        || payEnt?.invoice_id
+        || '';
       if (incomingPageId) {
         if (incomingPageId !== allowedPageId) {
           console.log(`[Webhook] BLOCKED — page ${incomingPageId} is not WOMB Circle`);
@@ -550,10 +554,37 @@ async function main() {
         }
       } else {
         // payment.captured / order.paid don't always carry the page ID.
+        // Log full diagnostic payload so we can see exactly what Razorpay sends.
+        console.log(`[Webhook] no page ID in ${event} — diagnostic:`, JSON.stringify({
+          payment_link_id: payEnt?.payment_link_id,
+          payment_page_id: payEnt?.payment_page_id,
+          invoice_id:      payEnt?.invoice_id,
+          order_id:        payEnt?.order_id,
+          description:     payEnt?.description,
+          method:          payEnt?.method,
+          notes:           payEnt?.notes
+        }));
+
         // Allow only if the payment was already recorded via a prior payment_link.paid event.
         const recorded = paymentId ? db.prepare('SELECT id FROM payments WHERE razorpay_payment_id=?').get(paymentId) : null;
         if (!recorded) {
           console.log(`[Webhook] SKIP ${event} — no page ID match and payment not yet in WOMB records`);
+          // Alert admin so no payment is silently missed
+          notifyAdmin(
+            `⚠️ Possible missed WOMB payment — ${event}`,
+            `<div style="font-family:sans-serif;padding:24px">
+              <h3 style="color:#c0392b">Payment event skipped — manual review needed</h3>
+              <p>A <strong>${event}</strong> webhook arrived with no Payment Page ID and no matching DB record.</p>
+              <table style="border-collapse:collapse;font-size:.9rem">
+                <tr><td style="padding:4px 12px 4px 0"><strong>Payment ID</strong></td><td>${paymentId || '—'}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0"><strong>Order ID</strong></td><td>${orderId || '—'}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0"><strong>Amount</strong></td><td>${amtFmt}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0"><strong>Email</strong></td><td>${email || '—'}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0"><strong>Name</strong></td><td>${name || '—'}</td></tr>
+              </table>
+              <p style="margin-top:16px">If this looks like a WOMB Circle payment, please add it manually in the Admin → Payments section.</p>
+            </div>`
+          );
           return;
         }
       }
