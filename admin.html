@@ -396,6 +396,20 @@
         <button class="btn btn-primary" onclick="saveWombSettings()">Save CTA Settings</button>
       </div>
 
+      <div class="form-section" style="margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+          <div>
+            <h3 style="margin-bottom:4px">Program Videos</h3>
+            <p style="color:var(--muted);font-size:.83rem">Add YouTube videos (sessions, masterclasses, testimonials) shown on the WOMB Program page.</p>
+          </div>
+          <button class="btn btn-primary" style="font-size:.82rem" onclick="openModal('wombVideoModal');clearWombVideoForm()">+ Add Video</button>
+        </div>
+        <table id="wombVideoTable">
+          <thead><tr><th>#</th><th>Title</th><th>YouTube URL</th><th>Order</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
       <div class="form-section">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
           <div>
@@ -568,6 +582,28 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('videoModal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveVideo()">Save Video</button>
+    </div>
+  </div>
+</div>
+
+<!-- WOMB Program Video Modal -->
+<div class="modal-backdrop" id="wombVideoModal">
+  <div class="modal">
+    <h3 id="wombVideoModalTitle">Add Program Video</h3>
+    <input type="hidden" id="wv-id">
+    <div class="form-row single">
+      <div class="field"><label>YouTube URL *</label><input type="url" id="wv-url" placeholder="https://youtu.be/... or youtube.com/watch?v=..."><small style="color:var(--muted);font-size:.75rem">Supports youtu.be, youtube.com/watch, /shorts, /embed formats</small></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Title</label><input type="text" id="wv-title" placeholder="WOMB Masterclass — Corporate Governance Essentials"></div>
+      <div class="field"><label>Display Order</label><input type="number" id="wv-order" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row single">
+      <div class="field"><label>Description (optional)</label><textarea id="wv-desc" rows="2" placeholder="Brief description of this session or video..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('wombVideoModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWombVideo()">Save Video</button>
     </div>
   </div>
 </div>
@@ -1081,8 +1117,72 @@
       document.getElementById('womb-apply-url').value = data.womb_apply_url || '';
       document.getElementById('womb-brochure-url').value = data.womb_brochure_url || '';
     }
-    const batches = await api('GET', '/api/admin/womb-batches');
+    const [batches, videos] = await Promise.all([
+      api('GET', '/api/admin/womb-batches'),
+      api('GET', '/api/admin/womb-program-videos')
+    ]);
     renderWombBatches(batches || []);
+    renderWombVideos(videos || []);
+  }
+
+  function renderWombVideos(videos) {
+    const tbody = document.querySelector('#wombVideoTable tbody');
+    tbody.innerHTML = '';
+    if (!videos.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No videos yet. Add your first program video!</td></tr>'; return; }
+    videos.forEach(function(v, i) {
+      tbody.innerHTML += '<tr>' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td style="font-weight:600">' + escH(v.title || '—') + '</td>' +
+        '<td style="font-size:.78rem;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escH(v.youtube_url) + '</td>' +
+        '<td>' + (v.order_index || 0) + '</td>' +
+        '<td style="display:flex;gap:6px">' +
+          '<button class="btn btn-ghost btn-sm" onclick="editWombVideo(' + JSON.stringify(v).replace(/"/g,'&quot;') + ')">Edit</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="deleteWombVideo(' + v.id + ')">Delete</button>' +
+        '</td>' +
+      '</tr>';
+    });
+  }
+
+  function clearWombVideoForm() {
+    document.getElementById('wv-id').value = '';
+    document.getElementById('wv-url').value = '';
+    document.getElementById('wv-title').value = '';
+    document.getElementById('wv-desc').value = '';
+    document.getElementById('wv-order').value = '';
+    document.getElementById('wombVideoModalTitle').textContent = 'Add Program Video';
+  }
+
+  function editWombVideo(v) {
+    document.getElementById('wv-id').value = v.id;
+    document.getElementById('wv-url').value = v.youtube_url || '';
+    document.getElementById('wv-title').value = v.title || '';
+    document.getElementById('wv-desc').value = v.description || '';
+    document.getElementById('wv-order').value = v.order_index || '';
+    document.getElementById('wombVideoModalTitle').textContent = 'Edit Program Video';
+    openModal('wombVideoModal');
+  }
+
+  async function saveWombVideo() {
+    const id = document.getElementById('wv-id').value;
+    const url = document.getElementById('wv-url').value.trim();
+    if (!url) { showToast('YouTube URL is required', true); return; }
+    const body = {
+      youtube_url: url,
+      title: document.getElementById('wv-title').value.trim(),
+      description: document.getElementById('wv-desc').value.trim(),
+      order_index: parseInt(document.getElementById('wv-order').value) || 0,
+      active: 1
+    };
+    const res = id
+      ? await api('PUT', '/api/admin/womb-program-videos/' + id, body)
+      : await api('POST', '/api/admin/womb-program-videos', body);
+    if (res?.success) { closeModal('wombVideoModal'); showToast(id ? 'Video updated!' : 'Video added!'); loadWomb(); }
+  }
+
+  async function deleteWombVideo(id) {
+    if (!confirm('Delete this video?')) return;
+    const res = await api('DELETE', '/api/admin/womb-program-videos/' + id);
+    if (res?.success) { showToast('Video deleted'); loadWomb(); }
   }
 
   async function saveWombSettings() {

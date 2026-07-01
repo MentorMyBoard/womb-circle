@@ -152,6 +152,17 @@ async function main() {
       visited_at  TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS womb_program_videos (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      youtube_url TEXT NOT NULL,
+      embed_url   TEXT,
+      title       TEXT,
+      description TEXT,
+      order_index INTEGER DEFAULT 0,
+      active      INTEGER DEFAULT 1,
+      created_at  TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS womb_batches (
       id             INTEGER PRIMARY KEY AUTOINCREMENT,
       batch_name     TEXT NOT NULL,
@@ -303,6 +314,10 @@ async function main() {
 
   app.get('/api/womb-batches', (_, res) => {
     res.json(db.prepare('SELECT * FROM womb_batches WHERE active=1 ORDER BY order_index ASC, id DESC').all());
+  });
+
+  app.get('/api/womb-program-videos', (_, res) => {
+    res.json(db.prepare('SELECT * FROM womb_program_videos WHERE active=1 ORDER BY order_index ASC, id DESC').all());
   });
 
   // ── Zoho CRM helpers ─────────────────────────────────────────────────────
@@ -865,6 +880,36 @@ async function main() {
 
   app.delete('/api/admin/womb-batches/:id', requireAdmin, (req, res) => {
     db.prepare('UPDATE womb_batches SET active=0 WHERE id=?').run(req.params.id);
+    db._save();
+    res.json({ success: true });
+  });
+
+  // ── WOMB Program Videos CRUD ─────────────────────────────────────────────
+  app.get('/api/admin/womb-program-videos', requireAdmin, (_, res) => {
+    res.json(db.prepare('SELECT * FROM womb_program_videos ORDER BY order_index ASC, id DESC').all());
+  });
+
+  app.post('/api/admin/womb-program-videos', requireAdmin, (req, res) => {
+    const { youtube_url, title, description, order_index } = req.body;
+    if (!youtube_url) return res.status(400).json({ error: 'youtube_url required' });
+    const embed_url = youtubeToEmbed(youtube_url);
+    db.prepare('INSERT INTO womb_program_videos (youtube_url, embed_url, title, description, order_index) VALUES (?,?,?,?,?)')
+      .run(youtube_url, embed_url, title || '', description || '', order_index || 0);
+    db._save();
+    res.json({ success: true });
+  });
+
+  app.put('/api/admin/womb-program-videos/:id', requireAdmin, (req, res) => {
+    const { youtube_url, title, description, order_index, active } = req.body;
+    const embed_url = youtubeToEmbed(youtube_url);
+    db.prepare('UPDATE womb_program_videos SET youtube_url=?, embed_url=?, title=?, description=?, order_index=?, active=? WHERE id=?')
+      .run(youtube_url, embed_url, title || '', description || '', order_index || 0, active ?? 1, req.params.id);
+    db._save();
+    res.json({ success: true });
+  });
+
+  app.delete('/api/admin/womb-program-videos/:id', requireAdmin, (req, res) => {
+    db.prepare('UPDATE womb_program_videos SET active=0 WHERE id=?').run(req.params.id);
     db._save();
     res.json({ success: true });
   });
