@@ -1555,7 +1555,7 @@
         <a href="#prog-faq">FAQs</a>
         <a href="#batches">Batches</a>
       </div>
-      <a href="#apply-cta" class="btn btn-orange" id="navApplyBtn">Apply Now</a>
+      <a href="#apply-cta" class="btn btn-orange" id="navApplyBtn">Nominate Yourself</a>
     </div>
   </nav>
 
@@ -2403,7 +2403,7 @@
         ['heroPrimaryBtn', 'ctaApplyBtn', 'navApplyBtn'].forEach(function (id) {
           const el = document.getElementById(id);
           if (el) {
-            el.textContent = id === 'navApplyBtn' ? 'Apply Now' : applyCta;
+            el.textContent = id === 'navApplyBtn' ? 'Nominate Yourself' : applyCta;
             if (applyUrl && applyUrl !== '#apply-cta') {
               el.href = applyUrl;
               if (applyUrl.startsWith('http')) { el.target = '_blank'; el.rel = 'noopener'; }
@@ -2446,7 +2446,7 @@
             (b.batch_period ? '<div class="batch-period"><svg viewBox="0 0 24 24" width="13" height="13" style="stroke:var(--muted);fill:none;stroke-width:2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + esc(b.batch_period) + '</div>' : '') +
             (b.participants ? '<div class="batch-participants">👩‍💼 ' + b.participants + ' Participants</div>' : '') +
             (b.highlights ? '<div class="batch-highlights">' + esc(b.highlights) + '</div>' : '') +
-            (b.status === 'active' && b.apply_url ? '<a href="' + esc(b.apply_url) + '" target="_blank" rel="noopener" class="btn btn-orange" style="margin-top:8px;justify-content:center">Apply Now</a>' : '') +
+            (b.status === 'active' && b.apply_url ? '<a href="' + esc(b.apply_url) + '" target="_blank" rel="noopener" class="btn btn-orange" style="margin-top:8px;justify-content:center">Nominate Yourself</a>' : '') +
             '</div>';
         }).join('');
       } catch (e) { }
