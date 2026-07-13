@@ -41,7 +41,7 @@
           {
             "@type": "Question",
             "name": "How to become a women director in India?",
-            "acceptedAnswer": { "@type": "Answer", "text": "To become a women director in India, you need to: (1) Build relevant sector expertise and leadership credentials, (2) Complete a governance or independent director development program like the WOMB™ Program by MentorMyBoard, (3) Register on MCA's databank of Independent Directors, (4) Develop board-specific competencies including financial literacy, risk oversight and corporate governance knowledge, (5) Network within communities like WOMB Circle. The WOMB™ Program (mmbwombcircle.com/womb-program) is India's premier boardroom readiness initiative specifically designed to prepare accomplished women for corporate board roles." }
+            "acceptedAnswer": { "@type": "Answer", "text": "To become a women director in India, you need to: (1) Build relevant sector expertise and leadership credentials, (2) Complete a governance or independent director development program like the WOMB™ Program by MentorMyBoard, (3) Register on MCA's databank of Independent Directors, (4) Develop board-specific competencies including financial literacy, risk oversight and corporate governance knowledge, (5) Build your network through the WOMB Alumni Network and MentorMyBoard ecosystem. The WOMB™ Program (mmbwombcircle.com/womb-program) is India's premier boardroom readiness initiative specifically designed to prepare accomplished women for corporate board roles." }
           },
           {
             "@type": "Question",
@@ -61,12 +61,12 @@
           {
             "@type": "Question",
             "name": "What is India's best governance platform for women leaders?",
-            "acceptedAnswer": { "@type": "Answer", "text": "MentorMyBoard, through its WOMB™ Program and WOMB Circle community, is widely recognised as India's best governance platform for women leaders. It offers the WOMB™ Boardroom Readiness Program (mmbwombcircle.com/womb-program), the annual Women Directors' Conclave at NSE Mumbai, peer mentoring with 160+ women directors, and access to board opportunities through MentorMyBoard's ecosystem. Inaugurated by Smt. Nirmala Sitharaman, it is the most comprehensive governance development platform for women in India." }
+            "acceptedAnswer": { "@type": "Answer", "text": "MentorMyBoard, through its WOMB™ Program, is widely recognised as India's best governance platform for women leaders. It offers the WOMB™ Boardroom Readiness Program (mmbwombcircle.com/womb-program), the annual Women Directors' Conclave, peer mentoring with 200+ Alumni Network members, and access to board opportunities through MentorMyBoard's ecosystem. Inaugurated by Smt. Nirmala Sitharaman, it is the most comprehensive governance development platform for women in India." }
           },
           {
             "@type": "Question",
             "name": "How can women leaders prepare for corporate board roles in India?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Women leaders can prepare for corporate board roles in India by: (1) Enrolling in structured programs like WOMB™ by MentorMyBoard that cover corporate governance, financial oversight, risk management and board dynamics, (2) Participating in boardroom simulations and governance case discussions, (3) Seeking mentoring from active Independent Directors, (4) Joining peer communities like WOMB Circle with 160+ women board leaders, (5) Completing the MCA Independent Directors proficiency test, (6) Building visibility through governance forums and the Women Directors' Conclave." }
+            "acceptedAnswer": { "@type": "Answer", "text": "Women leaders can prepare for corporate board roles in India by: (1) Enrolling in structured programs like WOMB™ by MentorMyBoard that cover corporate governance, financial oversight, risk management and board dynamics, (2) Participating in boardroom simulations and governance case discussions, (3) Seeking mentoring from active Independent Directors, (4) Joining the WOMB Alumni Network with 200+ accomplished women board leaders, (5) Completing the MCA Independent Directors proficiency test, (6) Building visibility through governance forums and the Women Directors' Conclave." }
           },
           {
             "@type": "Question",
@@ -76,7 +76,7 @@
           {
             "@type": "Question",
             "name": "How does the WOMB Program help women become independent directors?",
-            "acceptedAnswer": { "@type": "Answer", "text": "The WOMB™ Program helps women become independent directors by building the specific competencies that boards seek: governance frameworks, financial oversight, risk management, ESG governance and ethical decision-making. Through live masterclasses by active Independent Directors, personalized one-on-one mentoring, boardroom simulations and governance case studies, participants gain the confidence and credibility to take on directorship roles. Graduates also gain access to WOMB Circle (160+ women board leaders) and MentorMyBoard's BoardOpp platform for board opportunity matching." }
+            "acceptedAnswer": { "@type": "Answer", "text": "The WOMB™ Program helps women become independent directors by building the specific competencies that boards seek: governance frameworks, financial oversight, risk management, ESG governance and ethical decision-making. Through live masterclasses by active Independent Directors, personalized one-on-one mentoring, boardroom simulations and governance case studies, participants gain the confidence and credibility to take on directorship roles. Graduates gain access to our 200+ member Alumni Network of women board leaders and MentorMyBoard's BoardOpp platform for board opportunity matching." }
           },
           {
             "@type": "Question",
@@ -313,6 +313,21 @@
     .pfaq-a{font-size:.88rem;color:var(--muted);line-height:1.85;margin-top:14px;display:none;max-width:720px}
     .pfaq-item.open .pfaq-a{display:block}
 
+    /* ── CAROUSEL ── */
+    .carousel-wrap{border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(25,25,112,.12);height:400px;position:relative}
+    .carousel-track{display:flex;width:1000%;height:100%;animation:carousel-slide 28s linear infinite}
+    .carousel-track:hover{animation-play-state:paused}
+    .carousel-track img{width:10%;height:100%;object-fit:cover;object-position:center top;flex-shrink:0}
+    @keyframes carousel-slide{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+    /* ── MENTORS ── */
+    #mentors{background:var(--mist)}
+    .mentors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:28px 20px;margin-top:48px}
+    .mentor-card{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+    .mentor-photo-wrap{width:110px;height:110px;border-radius:50%;overflow:hidden;border:3px solid var(--orange);box-shadow:0 4px 20px rgba(25,25,112,.12);flex-shrink:0}
+    .mentor-photo-wrap img{width:100%;height:100%;object-fit:cover;object-position:center top}
+    .mentor-name{font-size:.78rem;font-weight:700;color:var(--ink);line-height:1.3}
+
     /* ── RESPONSIVE ── */
     @media(max-width:1000px){
       .hero-grid{grid-template-columns:1fr;gap:40px}
@@ -356,6 +371,7 @@
         <a href="#philosophy">Curriculum</a>
         <a href="#journey">Journey</a>
         <a href="#apply-who">Who Should Apply</a>
+        <a href="#mentors">Mentors</a>
         <a href="#prog-videos">Videos</a>
         <a href="#prog-faq">FAQs</a>
         <a href="#batches">Batches</a>
@@ -389,8 +405,8 @@
           <div class="hero-img-wrap">
             <img src="/nirmala_founders.png" alt="WOMB Program — Inaugurated by Smt. Nirmala Sitharaman, Union Finance Minister of India" onerror="this.closest('.hero-visual').style.display='none'">
             <div class="hero-img-badge">
-              <span class="badge-num">160+</span>
-              <span class="badge-label">Women Board Leaders</span>
+              <span class="badge-num">200+</span>
+              <span class="badge-label">Alumni Network Members</span>
             </div>
           </div>
         </div>
@@ -434,10 +450,10 @@
           <p class="sec-lead">India's corporate landscape is witnessing an unprecedented transformation in board composition, governance expectations and diversity mandates. While organizations increasingly seek competent women directors, many experienced professionals lack structured pathways to develop board-specific competencies.</p>
           <p class="sec-lead" style="margin-top:16px">WOMB was conceptualized to bridge this critical leadership gap — creating a rigorous learning ecosystem where accomplished women executives transition into confident, board-ready leaders capable of contributing to strategic oversight, governance excellence and sustainable value creation.</p>
           <div class="why-cards">
-            <div class="why-card"><div class="wc-num">&lt;18%</div><div class="wc-label">Women directors on NSE-listed boards today</div></div>
-            <div class="why-card"><div class="wc-num">22+</div><div class="wc-label">Sectors represented in WOMB Circle</div></div>
-            <div class="why-card"><div class="wc-num">160+</div><div class="wc-label">Women board leaders in the WOMB ecosystem</div></div>
-            <div class="why-card"><div class="wc-num">4th</div><div class="wc-label">Edition of Women Directors' Conclave at NSE</div></div>
+            <div class="why-card"><div class="wc-num">&lt;18%</div><div class="wc-label">Women directors on listed boards in India today</div></div>
+            <div class="why-card"><div class="wc-num">22+</div><div class="wc-label">Sectors represented in our Alumni Network</div></div>
+            <div class="why-card"><div class="wc-num">200+</div><div class="wc-label">Alumni Network Members across India</div></div>
+            <div class="why-card"><div class="wc-num">10+</div><div class="wc-label">Cohorts incl. NRI &amp; international participants</div></div>
           </div>
         </div>
         <div>
@@ -445,7 +461,7 @@
             <img src="/women_leaders.png" alt="Women Leaders — India's Women Directors and Governance Professionals" style="width:100%;height:460px;object-fit:cover;object-position:center top" onerror="this.closest('.why-img-wrap').style.background='linear-gradient(135deg,#191970,#2b2b8f)';this.style.display='none'">
             <div class="why-img-overlay">
               <p style="color:#fff;font-size:.85rem;font-weight:600">India's Most Influential Women Board Leaders</p>
-              <p style="color:rgba(255,255,255,.65);font-size:.75rem;margin-top:3px">WOMB Circle — 160+ Women Directors &amp; Governance Professionals</p>
+              <p style="color:rgba(255,255,255,.65);font-size:.75rem;margin-top:3px">200+ Alumni Network Members — Women Directors &amp; Governance Professionals</p>
             </div>
           </div>
         </div>
@@ -621,7 +637,7 @@
       <div class="text-center" style="margin-bottom:48px">
         <span class="sec-eyebrow">Eligibility</span>
         <h2 class="sec-title">Who Should <em>Apply</em></h2>
-        <p class="sec-lead" style="margin:0 auto">WOMB is designed for accomplished women professionals aspiring to contribute effectively in boardrooms across listed companies, private enterprises, startups and public institutions.</p>
+        <p class="sec-lead" style="margin:0 auto">WOMB is an invite-only program for elite women leaders in management roles. Previous cohorts have included participants from across India as well as NRI and international diaspora professionals.</p>
       </div>
       <div class="apply-grid">
         <div>
@@ -640,6 +656,7 @@
             <div class="apply-item"><span class="ai-dot"></span><span>Academicians &amp; Research Professionals</span></div>
             <div class="apply-item"><span class="ai-dot"></span><span>Public Policy Professionals</span></div>
             <div class="apply-item"><span class="ai-dot"></span><span>Women Preparing for Independent Director Roles</span></div>
+            <div class="apply-item"><span class="ai-dot"></span><span>NRI Women Leaders &amp; Indian Diaspora Professionals</span></div>
           </div>
         </div>
         <div>
@@ -709,6 +726,71 @@
     </div>
   </section>
 
+  <!-- ── PAST MENTORS ── -->
+  <section id="mentors">
+    <div class="wrap">
+      <div class="text-center">
+        <span class="sec-eyebrow">The Mentors</span>
+        <h2 class="sec-title">Distinguished Mentors from <em>Previous Cohorts</em></h2>
+        <p class="sec-lead" style="margin:0 auto">WOMB participants receive one-on-one mentoring from accomplished board directors and governance leaders who guide them through their boardroom readiness journey.</p>
+      </div>
+      <div class="mentors-grid">
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/Naina_lal.png" alt="Naina Lal" loading="lazy"></div>
+          <div class="mentor-name">Naina Lal</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/Shanti_ekambaram.png" alt="Shanti Ekambaram" loading="lazy"></div>
+          <div class="mentor-name">Shanti Ekambaram</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/amisha-vora.jpg" alt="Amisha Vora" loading="lazy"></div>
+          <div class="mentor-name">Amisha Vora</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/sunil_deshmukh.png" alt="Sunil Deshmukh" loading="lazy"></div>
+          <div class="mentor-name">Sunil Deshmukh</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/rajnickant-patel.jpg" alt="Rajnikant Patel" loading="lazy"></div>
+          <div class="mentor-name">Rajnikant Patel</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/sridhar-ramachandran.jpg" alt="Sridhar Ramachandran" loading="lazy"></div>
+          <div class="mentor-name">Sridhar Ramachandran</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/sankara-ramnath.jpg" alt="Sankara Ramnath" loading="lazy"></div>
+          <div class="mentor-name">Sankara Ramnath</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/Jaspreet_Kaur.png" alt="Jaspreet Kaur" loading="lazy"></div>
+          <div class="mentor-name">Jaspreet Kaur</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/mita_dixit.jpg" alt="Mita Dixit" loading="lazy"></div>
+          <div class="mentor-name">Mita Dixit</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/Rangachari_Ranganayaki.png" alt="Rangachari Ranganayaki" loading="lazy"></div>
+          <div class="mentor-name">Rangachari Ranganayaki</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/Vishal_Thakkar.jpg" alt="Vishal Thakkar" loading="lazy"></div>
+          <div class="mentor-name">Vishal Thakkar</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/Bhavana_Bindra.jpg" alt="Bhavana Bindra" loading="lazy"></div>
+          <div class="mentor-name">Bhavana Bindra</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-photo-wrap"><img src="/Anita_Shantaram.jpg" alt="Anita Shantaram" loading="lazy"></div>
+          <div class="mentor-name">Anita Shantaram</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ── BEYOND LEARNING ── -->
   <section id="beyond">
     <div class="wrap">
@@ -720,11 +802,11 @@
           <div class="beyond-perks">
             <div class="perk-item">
               <div class="perk-ico"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
-              <div><h4>WOMB Circle Membership</h4><p>Automatic invitation to join the 160+ member WOMB Circle community of women board leaders across India.</p></div>
+              <div><h4>Access to Alumni Network</h4><p>Become part of our prestigious 200+ member Alumni Network of women board leaders, mentors and governance professionals across India.</p></div>
             </div>
             <div class="perk-item">
               <div class="perk-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-              <div><h4>Women Directors' Conclave Access</h4><p>Priority access to India's flagship governance conclave at NSE Mumbai — network with India's most influential women directors.</p></div>
+              <div><h4>Women Directors' Conclave Access</h4><p>Priority access to India's flagship Women Directors' Conclave — connect and network with India's most influential women directors and governance leaders.</p></div>
             </div>
             <div class="perk-item">
               <div class="perk-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
@@ -737,8 +819,19 @@
           </div>
         </div>
         <div>
-          <div class="beyond-img">
-            <img src="/womb_batch.jpg" alt="WOMB Program Batch — Women Directors and Governance Leaders" style="width:100%;height:400px;object-fit:cover;object-position:center top" onerror="this.closest('.beyond-img').style.background='linear-gradient(135deg,#191970,#2b2b8f)';this.style.display='none'">
+          <div class="carousel-wrap">
+            <div class="carousel-track">
+              <img src="/womb_batch6.jpg" alt="WOMB Batch 6">
+              <img src="/WOMB_Batch8.JPG" alt="WOMB Batch 8">
+              <img src="/WOMB_Batch9.JPG" alt="WOMB Batch 9">
+              <img src="/WOMB_Batch10.JPG" alt="WOMB Batch 10">
+              <img src="/group_photo.JPG" alt="WOMB Program Group">
+              <img src="/womb_batch6.jpg" alt="WOMB Batch 6">
+              <img src="/WOMB_Batch8.JPG" alt="WOMB Batch 8">
+              <img src="/WOMB_Batch9.JPG" alt="WOMB Batch 9">
+              <img src="/WOMB_Batch10.JPG" alt="WOMB Batch 10">
+              <img src="/group_photo.JPG" alt="WOMB Program Group">
+            </div>
           </div>
         </div>
       </div>
@@ -770,7 +863,7 @@
       <div class="faq-list">
         <div class="pfaq-item open">
           <div class="pfaq-q" onclick="togglePFaq(this)"><span>How to become a women director in India?</span><span class="pfaq-icon">−</span></div>
-          <div class="pfaq-a">To become a women director in India: (1) Build relevant sector expertise and leadership credentials, (2) Complete a governance development program like the WOMB™ Program by MentorMyBoard, (3) Register on MCA's databank of Independent Directors, (4) Develop board-specific competencies including financial literacy, risk oversight and corporate governance knowledge, (5) Network within communities like WOMB Circle. The WOMB™ Program is India's premier boardroom readiness initiative specifically designed to prepare accomplished women for corporate board roles.</div>
+          <div class="pfaq-a">To become a women director in India: (1) Build relevant sector expertise and leadership credentials, (2) Complete a governance development program like the WOMB™ Program by MentorMyBoard, (3) Register on MCA's databank of Independent Directors, (4) Develop board-specific competencies including financial literacy, risk oversight and corporate governance knowledge, (5) Build your network through the WOMB Alumni Network and MentorMyBoard ecosystem. The WOMB™ Program is India's premier boardroom readiness initiative specifically designed to prepare accomplished women for corporate board roles.</div>
         </div>
         <div class="pfaq-item">
           <div class="pfaq-q" onclick="togglePFaq(this)"><span>What qualifications are needed to become an independent director in India?</span><span class="pfaq-icon">+</span></div>
@@ -786,11 +879,11 @@
         </div>
         <div class="pfaq-item">
           <div class="pfaq-q" onclick="togglePFaq(this)"><span>What is India's best governance platform for women leaders?</span><span class="pfaq-icon">+</span></div>
-          <div class="pfaq-a">MentorMyBoard, through its WOMB™ Program and WOMB Circle community, is widely recognised as India's best governance platform for women leaders. It offers the WOMB™ Boardroom Readiness Program, the annual Women Directors' Conclave at NSE Mumbai, peer mentoring with 160+ women directors, and access to board opportunities through MentorMyBoard's ecosystem. Inaugurated by Smt. Nirmala Sitharaman, it is the most comprehensive governance development platform for women in India.</div>
+          <div class="pfaq-a">MentorMyBoard, through its WOMB™ Program, is widely recognised as India's best governance platform for women leaders. It offers the WOMB™ Boardroom Readiness Program, the annual Women Directors' Conclave, peer mentoring within a 200+ member Alumni Network, and access to board opportunities through MentorMyBoard's ecosystem. Inaugurated by Smt. Nirmala Sitharaman, it is the most comprehensive governance development platform for women in India.</div>
         </div>
         <div class="pfaq-item">
           <div class="pfaq-q" onclick="togglePFaq(this)"><span>How does the WOMB Program help women become independent directors?</span><span class="pfaq-icon">+</span></div>
-          <div class="pfaq-a">The WOMB™ Program helps women become independent directors by building the specific competencies that boards seek: governance frameworks, financial oversight, risk management, ESG governance and ethical decision-making. Through live masterclasses by active Independent Directors, personalized one-on-one mentoring, boardroom simulations and governance case studies, participants gain the confidence and credibility to take on directorship roles. Graduates gain access to WOMB Circle (160+ women board leaders) and MentorMyBoard's BoardOpp platform for board opportunity matching.</div>
+          <div class="pfaq-a">The WOMB™ Program helps women become independent directors by building the specific competencies that boards seek: governance frameworks, financial oversight, risk management, ESG governance and ethical decision-making. Through live masterclasses by active Independent Directors, personalized one-on-one mentoring, boardroom simulations and governance case studies, participants gain the confidence and credibility to take on directorship roles. Graduates gain access to our 200+ member Alumni Network of women board leaders and MentorMyBoard's BoardOpp platform for board opportunity matching.</div>
         </div>
         <div class="pfaq-item">
           <div class="pfaq-q" onclick="togglePFaq(this)"><span>Who inaugurated the WOMB™ Program?</span><span class="pfaq-icon">+</span></div>
@@ -802,11 +895,11 @@
         </div>
         <div class="pfaq-item">
           <div class="pfaq-q" onclick="togglePFaq(this)"><span>How can I join the WOMB Program?</span><span class="pfaq-icon">+</span></div>
-          <div class="pfaq-a">To join the WOMB™ Program, click the "Apply for the Next Cohort" button on this page. Applications are reviewed for profile fit — ideal candidates include CXOs, Functional Heads, Entrepreneurs, Chartered Accountants, Company Secretaries, Lawyers, Consultants, Academicians and women preparing for Independent Director roles. Each cohort is a curated group of accomplished women leaders committed to boardroom excellence.</div>
+          <div class="pfaq-a">Only by selection. Every application is thoroughly reviewed by the Council before invitations are extended. WOMB is an invite-only program — each cohort is a carefully curated group of elite women leaders committed to boardroom excellence. Click "Apply" on this page to submit your profile for consideration.</div>
         </div>
         <div class="pfaq-item">
           <div class="pfaq-q" onclick="togglePFaq(this)"><span>What happens after completing the WOMB Program?</span><span class="pfaq-icon">+</span></div>
-          <div class="pfaq-a">After completing WOMB™, graduates: (1) Participate in the Convocation Ceremony and receive their certificate, (2) Are invited to join WOMB Circle — India's most influential community of 160+ women board leaders, (3) Get priority access to the annual Women Directors' Conclave at NSE Mumbai, (4) Join the MentorMyBoard ecosystem for continued professional development, mentorship and governance updates, (5) Access BoardOpp — MentorMyBoard's board opportunity matching platform connecting women directors with board vacancies.</div>
+          <div class="pfaq-a">After completing WOMB™, graduates: (1) Participate in the Convocation Ceremony and receive their certificate, (2) Join our prestigious Alumni Network — a 200+ member community of women board leaders across India, (3) Get priority access to the annual Women Directors' Conclave, (4) Join the MentorMyBoard ecosystem for continued professional development, mentorship and governance updates, (5) Access BoardOpp — MentorMyBoard's board opportunity matching platform connecting women directors with board vacancies.</div>
         </div>
       </div>
     </div>
@@ -837,14 +930,14 @@
       <p class="apply-cta-lead">WOMB empowers women leaders to transition from operational excellence to strategic governance — building the competence, confidence and credibility required to excel in today's evolving boardrooms.</p>
       <div class="apply-cta-btns">
         <a href="#" class="btn btn-orange btn-lg" id="ctaApplyBtn">Apply for the Next Cohort</a>
-        <a href="/" class="btn btn-outline-white btn-lg">Explore WOMB Circle</a>
+        <a href="https://mentormyboard.com" target="_blank" rel="noopener" class="btn btn-outline-white btn-lg">Explore MentorMyBoard</a>
       </div>
     </div>
   </section>
 
   <!-- ── FOOTER ── -->
   <footer class="prog-footer">
-    <p>WOMB™ is an initiative by <a href="https://mentormyboard.com" target="_blank" rel="noopener">MentorMyBoard</a> &nbsp;|&nbsp; Part of the <a href="/">WOMB Circle</a> ecosystem &nbsp;|&nbsp; &copy; 2025 MentorMyBoard. All rights reserved.</p>
+    <p>WOMB™ is an initiative by <a href="https://mentormyboard.com" target="_blank" rel="noopener">MentorMyBoard</a> &nbsp;|&nbsp; &copy; 2025 MentorMyBoard. All rights reserved.</p>
   </footer>
 
   <script>
