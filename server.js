@@ -220,8 +220,8 @@ async function main() {
   // Raw body needed for Razorpay webhook signature verification
   app.use('/api/razorpay-webhook',   express.raw({ type: 'application/json' }));
   app.use('/api/webhooks/razorpay',  express.raw({ type: 'application/json' }));
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '15mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function getClientIP(req) {
