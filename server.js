@@ -176,6 +176,21 @@ async function main() {
       order_index    INTEGER DEFAULT 0,
       created_at     TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS popups (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      label       TEXT NOT NULL,
+      image_url   TEXT NOT NULL,
+      orientation TEXT DEFAULT 'portrait',
+      width       INTEGER DEFAULT 300,
+      height      INTEGER DEFAULT 0,
+      position    TEXT DEFAULT 'right-bottom',
+      btn_text    TEXT DEFAULT '',
+      btn_url     TEXT DEFAULT '',
+      active      INTEGER DEFAULT 1,
+      order_index INTEGER DEFAULT 0,
+      created_at  TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   // Seed default settings (idempotent)
@@ -1086,7 +1101,73 @@ async function main() {
     res.json({ ok: true });
   });
 
-  // ── favicon.ico (Google looks here first before the <link> tag) ───────────
+  // ── Popups ────────────────────────────────────────────────────────────────
+  const POPUP_IMAGES_DIR = path.join(__dirname, 'popup-images');
+  if (!fs.existsSync(POPUP_IMAGES_DIR)) fs.mkdirSync(POPUP_IMAGES_DIR, { recursive: true });
+
+  function savePopupImage(imageData) {
+    const ext = imageData.startsWith('data:image/png') ? 'png' : 'jpg';
+    const filename = `popup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const base64 = imageData.replace(/^data:image\/\w+;base64,/, '');
+    fs.writeFileSync(path.join(POPUP_IMAGES_DIR, filename), Buffer.from(base64, 'base64'));
+    return `/popup-images/${filename}`;
+  }
+
+  app.get('/api/popups', (req, res) => {
+    const rows = db.prepare(
+      'SELECT id, image_url, orientation, width, height, position, btn_text, btn_url FROM popups WHERE active=1 ORDER BY order_index ASC, id ASC'
+    ).all();
+    res.json(rows);
+  });
+
+  app.get('/api/admin/popups', requireAdmin, (req, res) => {
+    res.json(db.prepare('SELECT * FROM popups ORDER BY order_index ASC, id ASC').all());
+  });
+
+  app.get('/api/admin/popups/:id', requireAdmin, (req, res) => {
+    const row = db.prepare('SELECT * FROM popups WHERE id=?').get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json(row);
+  });
+
+  app.post('/api/admin/popups', requireAdmin, (req, res) => {
+    const { label, image_data, orientation, width, height, position, btn_text, btn_url, order_index, active } = req.body;
+    if (!label || !image_data) return res.status(400).json({ error: 'label and image_data required' });
+    const imageUrl = savePopupImage(image_data);
+    const result = db.prepare(
+      'INSERT INTO popups (label, image_url, orientation, width, height, position, btn_text, btn_url, order_index, active) VALUES (?,?,?,?,?,?,?,?,?,?)'
+    ).run(label, imageUrl, orientation || 'portrait', width || 300, height || 0, position || 'right-bottom', btn_text || '', btn_url || '', order_index || 0, active != null ? active : 1);
+    res.json(db.prepare('SELECT * FROM popups WHERE id=?').get(result.lastInsertRowid));
+  });
+
+  app.put('/api/admin/popups/:id', requireAdmin, (req, res) => {
+    const row = db.prepare('SELECT * FROM popups WHERE id=?').get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    const { label, image_data, orientation, width, height, position, btn_text, btn_url, order_index, active } = req.body;
+    let imageUrl = row.image_url;
+    if (image_data) {
+      try { const old = path.join(__dirname, row.image_url.replace(/^\//, '')); if (fs.existsSync(old)) fs.unlinkSync(old); } catch {}
+      imageUrl = savePopupImage(image_data);
+    }
+    db.prepare(
+      'UPDATE popups SET label=?, image_url=?, orientation=?, width=?, height=?, position=?, btn_text=?, btn_url=?, order_index=?, active=? WHERE id=?'
+    ).run(
+      label ?? row.label, imageUrl,
+      orientation ?? row.orientation, width ?? row.width, height ?? row.height,
+      position ?? row.position, btn_text ?? row.btn_text, btn_url ?? row.btn_url,
+      order_index ?? row.order_index, active ?? row.active, row.id
+    );
+    res.json({ success: true });
+  });
+
+  app.delete('/api/admin/popups/:id', requireAdmin, (req, res) => {
+    const row = db.prepare('SELECT * FROM popups WHERE id=?').get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    try { const p = path.join(__dirname, row.image_url.replace(/^\//, '')); if (fs.existsSync(p)) fs.unlinkSync(p); } catch {}
+    db.prepare('DELETE FROM popups WHERE id=?').run(row.id);
+    res.json({ success: true });
+  });
+
   app.get('/favicon.ico', (_, res) => res.sendFile(path.join(__dirname, 'favicon.png')));
 
   // ── robots.txt ────────────────────────────────────────────────────────────

@@ -2883,6 +2883,47 @@
       } catch (e) {}
     });
   </script>
+
+  <!-- ── Promotional Popups ── -->
+  <style>
+    .site-popup{position:fixed;z-index:9999;max-width:calc(100vw - 40px);box-shadow:0 8px 48px rgba(0,0,0,.35);border-radius:12px;overflow:hidden;background:#fff;transition:transform .5s cubic-bezier(.22,1,.36,1),opacity .5s ease}
+    .site-popup-left-top{left:20px;top:80px;transform:translateX(calc(-100% - 40px));opacity:0}
+    .site-popup-left-bottom{left:20px;bottom:20px;transform:translateX(calc(-100% - 40px));opacity:0}
+    .site-popup-right-top{right:20px;top:80px;transform:translateX(calc(100% + 40px));opacity:0}
+    .site-popup-right-bottom{right:20px;bottom:20px;transform:translateX(calc(100% + 40px));opacity:0}
+    .site-popup-centre-top{left:50%;top:80px;transform:translateX(-50%) translateY(calc(-100% - 40px));opacity:0}
+    .site-popup-centre-bottom{left:50%;bottom:20px;transform:translateX(-50%) translateY(calc(100% + 40px));opacity:0}
+    .site-popup-left-top.site-popup-in,.site-popup-left-bottom.site-popup-in{transform:translateX(0);opacity:1}
+    .site-popup-right-top.site-popup-in,.site-popup-right-bottom.site-popup-in{transform:translateX(0);opacity:1}
+    .site-popup-centre-top.site-popup-in{transform:translateX(-50%) translateY(0);opacity:1}
+    .site-popup-centre-bottom.site-popup-in{transform:translateX(-50%) translateY(0);opacity:1}
+    .site-popup img{width:100%;display:block}
+    .site-popup-close{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1;line-height:1;transition:background .2s}
+    .site-popup-close:hover{background:rgba(0,0,0,.8)}
+    .site-popup-btn{display:block;text-align:center;padding:11px 16px;background:#191970;color:#fff;font-weight:700;font-size:.85rem;text-decoration:none;letter-spacing:.02em}
+    .site-popup-btn:hover{background:#0d0d4d;color:#fff}
+  </style>
+  <script>
+    (function(){
+      fetch('/api/popups').then(function(r){return r.json();}).then(function(list){
+        list.forEach(function(p){
+          var el = document.createElement('div');
+          el.className = 'site-popup site-popup-' + p.position;
+          el.style.width = p.width + 'px';
+          if (p.height) el.style.height = p.height + 'px';
+          var img = '<img src="' + p.image_url + '" alt="" loading="lazy">';
+          var close = '<button class="site-popup-close" onclick="(function(e){e.closest(\'.site-popup\').classList.remove(\'site-popup-in\');setTimeout(function(){e.closest(\'.site-popup\').remove();},500);})(this)">✕</button>';
+          if (p.btn_text && p.btn_url) {
+            el.innerHTML = close + '<a href="' + p.btn_url + '" target="_blank" rel="noopener">' + img + '</a><a href="' + p.btn_url + '" target="_blank" rel="noopener" class="site-popup-btn">' + p.btn_text + '</a>';
+          } else {
+            el.innerHTML = close + img;
+          }
+          document.body.appendChild(el);
+          requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.classList.add('site-popup-in'); }); });
+        });
+      }).catch(function(){});
+    })();
+  </script>
 </body>
 
 </html>

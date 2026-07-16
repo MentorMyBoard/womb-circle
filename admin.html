@@ -202,6 +202,10 @@
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
         WOMB Program
       </a>
+      <a href="#" onclick="showTab('popups',this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 20h8M12 18v2"/><path d="m9 10 2 2 4-4"/></svg>
+        Popups
+      </a>
       <div class="nav-section">Config</div>
       <a href="#" onclick="showTab('settings',this)">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
@@ -425,6 +429,24 @@
       </div>
     </div>
 
+    <!-- ══ POPUPS ══ -->
+    <div id="tab-popups" class="tab-content">
+      <div class="page-header">
+        <h1>Popups</h1>
+        <button class="btn btn-primary" onclick="openPopupModal()">+ Add Popup</button>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2 id="popupsCount">All Popups</h2></div>
+        <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Promotional banners that float over your website. Each visitor sees them on every page load; clicking ✕ dismisses until next refresh.</p>
+        <div class="table-wrap">
+          <table id="popupsTable">
+            <thead><tr><th>Label</th><th>Position</th><th>Size</th><th>Button</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="popupsList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -644,6 +666,69 @@
   </div>
 </div>
 
+<!-- Popup Modal -->
+<div class="modal-backdrop" id="popupModal">
+  <div class="modal" style="max-width:560px">
+    <h3 id="popupModalTitle">Add Popup</h3>
+    <input type="hidden" id="pp-id">
+    <div class="form-row single">
+      <div class="field">
+        <label>Label * <small style="font-weight:400;color:var(--muted)">(admin reference only)</small></label>
+        <input type="text" id="pp-label" placeholder="e.g. Summer Offer Banner">
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="field">
+        <label>Image * <small style="font-weight:400;color:var(--muted)">(upload from your computer — auto-compressed)</small></label>
+        <input type="file" id="pp-file" accept="image/*" onchange="previewPopupImage(this)" style="font-size:.83rem">
+      </div>
+    </div>
+    <div id="pp-preview-wrap" style="display:none;margin-bottom:14px">
+      <label style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Image Preview</label>
+      <img id="pp-preview-img" src="" alt="preview" style="max-width:100%;max-height:200px;object-fit:contain;border-radius:8px;border:1px solid var(--line)">
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Orientation</label>
+        <select id="pp-orientation" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:.9rem">
+          <option value="portrait">Portrait (taller than wide)</option>
+          <option value="landscape">Landscape (wider than tall)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Screen Position</label>
+        <select id="pp-position" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:.9rem">
+          <option value="right-bottom">Right Bottom</option>
+          <option value="right-top">Right Top</option>
+          <option value="left-top">Left Top</option>
+          <option value="left-bottom">Left Bottom</option>
+          <option value="centre-top">Centre Top</option>
+          <option value="centre-bottom">Centre Bottom</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Width (px)</label><input type="number" id="pp-width" value="300" min="100" max="800"></div>
+      <div class="field"><label>Height (px) <small style="font-weight:400;color:var(--muted)">0 = auto</small></label><input type="number" id="pp-height" value="0" min="0" max="1000"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Button Text <small style="font-weight:400;color:var(--muted)">(optional)</small></label><input type="text" id="pp-btn-text" placeholder="Learn More"></div>
+      <div class="field"><label>Button URL <small style="font-weight:400;color:var(--muted)">(optional)</small></label><input type="url" id="pp-btn-url" placeholder="https://..."></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Display Order</label><input type="number" id="pp-order" value="0" min="0"></div>
+      <div class="field" style="display:flex;align-items:center;padding-top:22px;gap:10px">
+        <input type="checkbox" id="pp-active" checked style="width:18px;height:18px;cursor:pointer;flex-shrink:0">
+        <label for="pp-active" style="margin:0;cursor:pointer;font-weight:600;font-size:.88rem">Active (visible on website)</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('popupModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePopup()">Save Popup</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -700,7 +785,7 @@
     document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     if (el) el.classList.add('active');
-    const loaders = { dashboard: loadDashboard, enquiries: loadEnquiries, payments: loadPayments, events: loadEvents, photos: loadPhotos, videos: loadVideos, settings: loadSettings, visitors: loadVisitors, womb: loadWomb };
+    const loaders = { dashboard: loadDashboard, enquiries: loadEnquiries, payments: loadPayments, events: loadEvents, photos: loadPhotos, videos: loadVideos, settings: loadSettings, visitors: loadVisitors, womb: loadWomb, popups: loadPopups };
     if (loaders[name]) loaders[name]();
     return false;
   }
@@ -1436,6 +1521,144 @@
       const el = document.getElementById(id);
       if (el) el.href = el.href.split('?')[0] + '?token=' + encodeURIComponent(TOKEN);
     });
+  }
+
+  // ── Popups ────────────────────────────────────────────────────────────────
+  let _popupImageData = null;
+
+  function previewPopupImage(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        const maxDim = 1200;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        let quality = 0.85, dataUrl = canvas.toDataURL('image/jpeg', quality);
+        const MAX_B64 = 800 * 1024 * 1.37;
+        while (dataUrl.length > MAX_B64 && quality > 0.3) {
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        _popupImageData = dataUrl;
+        document.getElementById('pp-preview-img').src = dataUrl;
+        document.getElementById('pp-preview-wrap').style.display = 'block';
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+
+  function openPopupModal(popup) {
+    _popupImageData = null;
+    ['pp-id','pp-label','pp-btn-text','pp-btn-url'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('pp-file').value = '';
+    document.getElementById('pp-preview-wrap').style.display = 'none';
+    document.getElementById('pp-preview-img').src = '';
+    document.getElementById('pp-orientation').value = 'portrait';
+    document.getElementById('pp-position').value = 'right-bottom';
+    document.getElementById('pp-width').value = '300';
+    document.getElementById('pp-height').value = '0';
+    document.getElementById('pp-order').value = '0';
+    document.getElementById('pp-active').checked = true;
+    document.getElementById('popupModalTitle').textContent = popup ? 'Edit Popup' : 'Add Popup';
+    if (popup) {
+      document.getElementById('pp-id').value = popup.id;
+      document.getElementById('pp-label').value = popup.label || '';
+      document.getElementById('pp-orientation').value = popup.orientation || 'portrait';
+      document.getElementById('pp-position').value = popup.position || 'right-bottom';
+      document.getElementById('pp-width').value = popup.width || 300;
+      document.getElementById('pp-height').value = popup.height || 0;
+      document.getElementById('pp-btn-text').value = popup.btn_text || '';
+      document.getElementById('pp-btn-url').value = popup.btn_url || '';
+      document.getElementById('pp-order').value = popup.order_index || 0;
+      document.getElementById('pp-active').checked = popup.active == 1;
+      if (popup.image_url) {
+        document.getElementById('pp-preview-img').src = popup.image_url;
+        document.getElementById('pp-preview-wrap').style.display = 'block';
+      }
+    }
+    openModal('popupModal');
+  }
+
+  async function savePopup() {
+    const id = document.getElementById('pp-id').value;
+    const label = document.getElementById('pp-label').value.trim();
+    if (!label) { showToast('Label is required', true); return; }
+    if (!id && !_popupImageData) { showToast('Please select an image', true); return; }
+    const body = {
+      label,
+      orientation: document.getElementById('pp-orientation').value,
+      position: document.getElementById('pp-position').value,
+      width: parseInt(document.getElementById('pp-width').value) || 300,
+      height: parseInt(document.getElementById('pp-height').value) || 0,
+      btn_text: document.getElementById('pp-btn-text').value.trim(),
+      btn_url: document.getElementById('pp-btn-url').value.trim(),
+      order_index: parseInt(document.getElementById('pp-order').value) || 0,
+      active: document.getElementById('pp-active').checked ? 1 : 0
+    };
+    if (_popupImageData) body.image_data = _popupImageData;
+    const res = await api(id ? 'PUT' : 'POST', id ? `/api/admin/popups/${id}` : '/api/admin/popups', body);
+    if (res && (res.id || res.success)) {
+      closeModal('popupModal');
+      loadPopups();
+      showToast(id ? 'Popup updated!' : 'Popup created!');
+    } else {
+      showToast((res && res.error) || 'Save failed', true);
+    }
+  }
+
+  async function loadPopups() {
+    const data = await api('GET', '/api/admin/popups');
+    if (!data) return;
+    document.getElementById('popupsCount').textContent = data.length + ' Popup' + (data.length !== 1 ? 's' : '');
+    const tbody = document.getElementById('popupsList');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">No popups yet. Click "+ Add Popup" to create one.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(function(p) {
+      const badge = p.active ? '<span class="badge badge-green">Active</span>' : '<span class="badge" style="background:#f1f5f9;color:#64748b">Hidden</span>';
+      const pos = p.position.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+      const size = p.width + 'px' + (p.height ? ' × ' + p.height + 'px' : ' (auto h)');
+      const btnCol = p.btn_text ? ('<span style="font-size:.78rem">' + p.btn_text + '</span>') : '<span style="color:var(--muted)">—</span>';
+      return '<tr>' +
+        '<td><strong>' + p.label + '</strong></td>' +
+        '<td style="font-size:.83rem">' + pos + '</td>' +
+        '<td style="font-size:.82rem;color:var(--muted)">' + size + '</td>' +
+        '<td>' + btnCol + '</td>' +
+        '<td>' + badge + '</td>' +
+        '<td>' +
+          '<button class="btn btn-ghost" style="font-size:.78rem;padding:4px 10px" onclick="editPopup(' + p.id + ')">Edit</button> ' +
+          '<button class="btn btn-ghost" style="font-size:.78rem;padding:4px 10px" onclick="togglePopup(' + p.id + ',' + p.active + ')">' + (p.active ? 'Hide' : 'Show') + '</button> ' +
+          '<button class="btn btn-ghost" style="font-size:.78rem;padding:4px 10px;color:#ef4444;border-color:#fecaca" onclick="deletePopup(' + p.id + ')">Delete</button>' +
+        '</td></tr>';
+    }).join('');
+  }
+
+  async function editPopup(id) {
+    const data = await api('GET', '/api/admin/popups/' + id);
+    if (data) openPopupModal(data);
+  }
+
+  async function togglePopup(id, currentActive) {
+    const res = await api('PUT', '/api/admin/popups/' + id, { active: currentActive ? 0 : 1 });
+    if (res && (res.success || res.id)) { loadPopups(); showToast(currentActive ? 'Popup hidden' : 'Popup is now active'); }
+    else showToast('Update failed', true);
+  }
+
+  async function deletePopup(id) {
+    if (!confirm('Delete this popup? The uploaded image will also be removed.')) return;
+    const res = await api('DELETE', '/api/admin/popups/' + id);
+    if (res && res.success) { loadPopups(); showToast('Popup deleted'); }
+    else showToast((res && res.error) || 'Delete failed', true);
   }
 
   // ── Close modal on backdrop click ─────────────────────────────────────────
