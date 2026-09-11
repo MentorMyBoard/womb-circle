@@ -227,6 +227,37 @@ async function main() {
   try { db._db.run('ALTER TABLE events ADD COLUMN success_description TEXT'); db._save(); } catch {}
   try { db._db.run('ALTER TABLE events ADD COLUMN success_photo1 TEXT'); db._save(); } catch {}
   try { db._db.run('ALTER TABLE events ADD COLUMN success_photo2 TEXT'); db._save(); } catch {}
+  try { db._db.run('ALTER TABLE events ADD COLUMN slug TEXT'); db._save(); } catch {}
+
+  // ── Slug helpers (stable, human-readable event URLs) ──────────────────────
+  function slugify(text) {
+    return String(text || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  function generateUniqueSlug(title, excludeId) {
+    const base = slugify(title) || 'event';
+    let slug = base;
+    let n = 2;
+    while (true) {
+      const row = excludeId
+        ? db.prepare('SELECT id FROM events WHERE slug=? AND id<>?').get(slug, excludeId)
+        : db.prepare('SELECT id FROM events WHERE slug=?').get(slug);
+      if (!row) return slug;
+      slug = `${base}-${n++}`;
+    }
+  }
+
+  // Backfill slugs for any pre-existing events (e.g. rows created before this
+  // column existed, or seeded directly) — idempotent, only touches empty slugs.
+  db.prepare('SELECT id, title FROM events WHERE slug IS NULL OR slug=?').all('').forEach(row => {
+    db.prepare('UPDATE events SET slug=? WHERE id=?').run(generateUniqueSlug(row.title, row.id), row.id);
+  });
 
   // ── Middleware ────────────────────────────────────────────────────────────
   app.use(compression());
@@ -959,29 +990,34 @@ async function main() {
             subtitle, event_date, registration_url } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
     const extras = await normalizeEventExtras(req.body);
+    const slug = generateUniqueSlug(title);
     const r = db.prepare(
       `INSERT INTO events (title, kicker, description, image_url, date_label, location, edition, partner, order_index,
-        subtitle, event_date, registration_url, speakers, gallery_photos, video_urls, faqs)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        subtitle, event_date, registration_url, speakers, gallery_photos, video_urls, faqs, slug)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       title, kicker || '', description || '', googleDriveToDirectUrl(image_url || ''), date_label || '', location || '', edition || '', partner || '', order_index || 0,
-      subtitle || '', event_date || '', registration_url || '', extras.speakers, extras.gallery_photos, extras.video_urls, extras.faqs
+      subtitle || '', event_date || '', registration_url || '', extras.speakers, extras.gallery_photos, extras.video_urls, extras.faqs, slug
     );
-    res.json({ id: r.lastInsertRowid });
+    res.json({ id: r.lastInsertRowid, slug });
   });
 
   app.put('/api/admin/events/:id', requireAdmin, async (req, res) => {
     const { title, kicker, description, image_url, date_label, location, edition, partner, order_index, active,
             subtitle, event_date, registration_url } = req.body;
     const extras = await normalizeEventExtras(req.body);
+    // Slug stays stable once set — only (re)generated if this row doesn't have one yet —
+    // so editing a title later never breaks a link that's already been shared.
+    const existing = db.prepare('SELECT slug FROM events WHERE id=?').get(req.params.id);
+    const slug = (existing && existing.slug) || generateUniqueSlug(title, req.params.id);
     db.prepare(
       `UPDATE events SET title=?, kicker=?, description=?, image_url=?, date_label=?, location=?, edition=?, partner=?, order_index=?, active=?,
-        subtitle=?, event_date=?, registration_url=?, speakers=?, gallery_photos=?, video_urls=?, faqs=? WHERE id=?`
+        subtitle=?, event_date=?, registration_url=?, speakers=?, gallery_photos=?, video_urls=?, faqs=?, slug=? WHERE id=?`
     ).run(
       title, kicker || '', description || '', googleDriveToDirectUrl(image_url || ''), date_label || '', location || '', edition || '', partner || '', order_index || 0, active ?? 1,
-      subtitle || '', event_date || '', registration_url || '', extras.speakers, extras.gallery_photos, extras.video_urls, extras.faqs, req.params.id
+      subtitle || '', event_date || '', registration_url || '', extras.speakers, extras.gallery_photos, extras.video_urls, extras.faqs, slug, req.params.id
     );
-    res.json({ success: true });
+    res.json({ success: true, slug });
   });
 
   app.delete('/api/admin/events/:id', requireAdmin, (req, res) => {
@@ -1216,7 +1252,7 @@ async function main() {
   }
 
   function renderEventCard(e) {
-    return `<a class="evcard" href="/events/${e.id}">` +
+    return `<a class="evcard" href="/events/${esc(e.slug || e.id)}">` +
         `<div class="evcard-img">${e.image_url ? `<img src="${esc(e.image_url)}" alt="${esc(e.title)}" loading="lazy">` : ''}</div>` +
         `<div class="evcard-body">` +
           (eventMetaLine(e) ? `<div class="evcard-meta">${eventMetaLine(e)}</div>` : '') +
@@ -1381,9 +1417,16 @@ async function main() {
     res.send(html);
   });
 
-  app.get('/events/:id', (req, res) => {
-    const id = parseInt(req.params.id, 10);
-    const e = Number.isInteger(id) ? db.prepare('SELECT * FROM events WHERE id=? AND active=1').get(id) : null;
+  app.get('/events/:slug', (req, res) => {
+    let e = db.prepare('SELECT * FROM events WHERE slug=? AND active=1').get(req.params.slug);
+    // Fallback for old numeric links (e.g. already shared/bookmarked) — redirect to the canonical slug URL.
+    if (!e) {
+      const id = parseInt(req.params.slug, 10);
+      const byId = Number.isInteger(id) && String(id) === req.params.slug
+        ? db.prepare('SELECT * FROM events WHERE id=? AND active=1').get(id)
+        : null;
+      if (byId) return res.redirect(301, `/events/${byId.slug || byId.id}`);
+    }
     if (!e) return res.redirect('/events');
 
     const title = esc(e.title);
@@ -1526,10 +1569,10 @@ Sitemap: ${SITE_URL}/sitemap.xml`
   // ── sitemap.xml ───────────────────────────────────────────────────────────
   app.get('/sitemap.xml', (_, res) => {
     const today = new Date().toISOString().split('T')[0];
-    const eventIds = db.prepare('SELECT id FROM events WHERE active=1').all();
+    const eventIds = db.prepare('SELECT id, slug FROM events WHERE active=1').all();
     const eventUrls = eventIds.map(e => `
   <url>
-    <loc>${SITE_URL}/events/${e.id}</loc>
+    <loc>${SITE_URL}/events/${e.slug || e.id}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

@@ -1088,7 +1088,7 @@
               ? `<button class="btn btn-ghost btn-sm" onclick="openConvertModal(${e.id})">Edit Success Story</button>
                  <button class="btn btn-ghost btn-sm" onclick="revertSuccessStory(${e.id})">Revert to Upcoming</button>`
               : `<button class="btn btn-ghost btn-sm" onclick="openConvertModal(${e.id})">Convert to Success Story</button>`}
-            <a class="btn btn-ghost btn-sm" href="/events/${e.id}" target="_blank">View ↗</a>
+            <a class="btn btn-ghost btn-sm" href="/events/${e.slug || e.id}" target="_blank">View ↗</a>
             <span class="badge ${e.active ? 'badge-green' : 'badge-amber'}">${e.active ? 'Active' : 'Hidden'}</span>
             ${e.is_success_story ? '<span class="badge badge-navy">Success Story</span>' : ''}
           </div>
