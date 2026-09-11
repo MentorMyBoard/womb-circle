@@ -131,6 +131,16 @@
     .video-frame { position: relative; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: #000 }
     .video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100% }
 
+    .video-link-card {
+      aspect-ratio: 16/9; border-radius: 12px; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 10px; color: #fff; transition: transform .2s, box-shadow .2s;
+    }
+    .video-link-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(21,21,74,.18) }
+    .video-link-label { font-size: .85rem; font-weight: 700 }
+    .video-link-linkedin { background: linear-gradient(160deg, #0a66c2, #084a8f) }
+    .video-link-instagram { background: linear-gradient(160deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) }
+    .video-link-web { background: linear-gradient(160deg, var(--navy-tint), var(--navy-deep)) }
+
     .faq-list { max-width: 760px }
     .faq-item { border-bottom: 1px solid var(--line) }
     .faq-item:first-child { border-top: 1px solid var(--line) }

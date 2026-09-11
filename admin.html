@@ -571,7 +571,7 @@
     </div>
 
     <div class="repeat-section">
-      <label>Event Videos (YouTube Links)</label>
+      <label>Event Videos (YouTube, Google Drive, LinkedIn, Instagram or any link)</label>
       <div id="ev-videos-list"></div>
       <button type="button" class="add-row-btn" onclick="addVideoRow()">+ Add Video</button>
     </div>
@@ -1134,7 +1134,7 @@
 
   function addVideoRow(url) {
     repeatRow(document.getElementById('ev-videos-list'),
-      `<input type="url" placeholder="YouTube URL" class="vid-url" value="${(url || '').replace(/"/g, '&quot;')}">`);
+      `<input type="url" placeholder="YouTube, Google Drive, LinkedIn, Instagram, or any video link" class="vid-url" value="${(url || '').replace(/"/g, '&quot;')}">`);
   }
 
   function addFaqRow(q, a) {

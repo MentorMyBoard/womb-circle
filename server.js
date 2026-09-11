@@ -275,6 +275,27 @@ async function main() {
     return url;
   }
 
+  // Classifies an event-video URL and returns an iframe-ready embed URL when the
+  // platform actually allows framing. LinkedIn, Instagram and generic web pages
+  // send X-Frame-Options/CSP headers that block embedding outright — no embed
+  // URL exists for those, so callers must fall back to a click-through link.
+  function classifyVideoUrl(url) {
+    if (!url) return { platform: 'web', embedUrl: null };
+    const youtube = youtubeToEmbed(url);
+    if (youtube && youtube !== url) return { platform: 'youtube', embedUrl: youtube };
+    if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+      const patterns = [/\/file\/d\/([a-zA-Z0-9_-]+)/, /[?&]id=([a-zA-Z0-9_-]+)/, /\/d\/([a-zA-Z0-9_-]+)/];
+      for (const p of patterns) {
+        const m = url.match(p);
+        if (m) return { platform: 'drive', embedUrl: `https://drive.google.com/file/d/${m[1]}/preview` };
+      }
+      return { platform: 'drive', embedUrl: null };
+    }
+    if (url.includes('linkedin.com')) return { platform: 'linkedin', embedUrl: null };
+    if (url.includes('instagram.com')) return { platform: 'instagram', embedUrl: null };
+    return { platform: 'web', embedUrl: null };
+  }
+
   // ── Brevo email ───────────────────────────────────────────────────────────
   async function sendBrevoEmail({ to, toName, subject, htmlContent }) {
     const apiKey = process.env.BREVO_API_KEY;
@@ -888,7 +909,7 @@ async function main() {
         .map(u => googleDriveToDirectUrl(u))),
       video_urls: JSON.stringify(video_urls
         .filter(Boolean)
-        .map(u => ({ url: u, embed: youtubeToEmbed(u) }))),
+        .map(u => { const c = classifyVideoUrl(u); return { url: u, embed: c.embedUrl, platform: c.platform }; })),
       faqs: JSON.stringify(faqs.filter(f => f && f.q))
     };
   }
@@ -1245,13 +1266,32 @@ async function main() {
       `</div></section>`;
   }
 
+  const VIDEO_PLATFORM_META = {
+    linkedin:  { label: 'Watch on LinkedIn',  cls: 'video-link-linkedin',
+      icon: '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>' },
+    instagram: { label: 'Watch on Instagram', cls: 'video-link-instagram',
+      icon: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>' },
+    web:       { label: 'Watch Video',        cls: 'video-link-web',
+      icon: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>' }
+  };
+
   function renderEventVideos(json) {
     const videos = safeParseArray(json);
     if (!videos.length) return '';
     return `<section class="ed-section"><h2>Videos</h2><div class="video-grid">` +
-      videos.map(v =>
-        `<div class="video-card"><div class="video-frame"><iframe src="${esc(v.embed)}" title="Event video" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen loading="lazy"></iframe></div></div>`
-      ).join('\n') +
+      videos.map(v => {
+        const url = (v && v.url) || (typeof v === 'string' ? v : '');
+        if (!url) return '';
+        const { platform, embedUrl } = classifyVideoUrl(url);
+        if (embedUrl) {
+          return `<div class="video-card"><div class="video-frame"><iframe src="${esc(embedUrl)}" title="Event video" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen loading="lazy"></iframe></div></div>`;
+        }
+        const meta = VIDEO_PLATFORM_META[platform] || VIDEO_PLATFORM_META.web;
+        return `<a class="video-card video-link-card ${meta.cls}" href="${esc(url)}" target="_blank" rel="noopener">` +
+            `<span class="video-link-icon">${meta.icon}</span>` +
+            `<span class="video-link-label">${esc(meta.label)}</span>` +
+          `</a>`;
+      }).join('\n') +
       `</div></section>`;
   }
 
