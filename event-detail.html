@@ -132,14 +132,34 @@
     .video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100% }
 
     .video-link-card {
-      aspect-ratio: 16/9; border-radius: 12px; display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 10px; color: #fff; transition: transform .2s, box-shadow .2s;
+      position: relative; aspect-ratio: 16/9; border-radius: 12px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px; color: #fff; overflow: hidden;
+      transition: transform .2s, box-shadow .2s; background-size: cover; background-position: center;
     }
     .video-link-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(21,21,74,.18) }
     .video-link-label { font-size: .85rem; font-weight: 700 }
-    .video-link-linkedin { background: linear-gradient(160deg, #0a66c2, #084a8f) }
-    .video-link-instagram { background: linear-gradient(160deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) }
-    .video-link-web { background: linear-gradient(160deg, var(--navy-tint), var(--navy-deep)) }
+    .video-link-linkedin { background-color: #0a66c2; background-image: linear-gradient(160deg, #0a66c2, #084a8f) }
+    .video-link-instagram { background-color: #cc2366; background-image: linear-gradient(160deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) }
+    .video-link-web { background-color: var(--navy-deep); background-image: linear-gradient(160deg, var(--navy-tint), var(--navy-deep)) }
+
+    /* When a real thumbnail was fetched, swap the centered icon+label for a
+       play-button affordance + bottom-anchored label over the actual image. */
+    .video-link-card.has-preview { justify-content: flex-end; align-items: flex-start; padding: 14px }
+    .video-link-card.has-preview .video-link-icon {
+      position: absolute; top: 14px; left: 14px; width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(255,255,255,.2); backdrop-filter: blur(4px); display: flex; align-items: center;
+      justify-content: center;
+    }
+    .video-link-card.has-preview .video-link-icon svg { width: 16px; height: 16px }
+    .video-link-card.has-preview::before {
+      content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,.92);
+    }
+    .video-link-card.has-preview::after {
+      content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-42%, -50%);
+      width: 0; height: 0; border-style: solid; border-width: 8px 0 8px 14px;
+      border-color: transparent transparent transparent var(--navy);
+    }
 
     .faq-list { max-width: 760px }
     .faq-item { border-bottom: 1px solid var(--line) }

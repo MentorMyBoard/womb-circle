@@ -296,6 +296,39 @@ async function main() {
     return { platform: 'web', embedUrl: null };
   }
 
+  // Best-effort link-preview fetch (same technique Slack/WhatsApp use for unfurling):
+  // fetch the page once at save time and read its og:image/twitter:image meta tag.
+  // Never throws — returns null on any failure so the caller can fall back cleanly.
+  async function fetchLinkPreviewImage(url) {
+    try {
+      const res = await axios.get(url, {
+        timeout: 6000,
+        maxContentLength: 3 * 1024 * 1024,
+        maxRedirects: 5,
+        responseType: 'text',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; WOMBCircleBot/1.0; +https://mmbwombcircle.com)',
+          'Accept': 'text/html'
+        },
+        validateStatus: s => s >= 200 && s < 400
+      });
+      const html = String(res.data || '');
+      const patterns = [
+        /<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i,
+        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/i,
+        /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i,
+        /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/i
+      ];
+      for (const p of patterns) {
+        const m = html.match(p);
+        if (m && m[1]) return m[1].replace(/&amp;/g, '&');
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   // ── Brevo email ───────────────────────────────────────────────────────────
   async function sendBrevoEmail({ to, toName, subject, htmlContent }) {
     const apiKey = process.env.BREVO_API_KEY;
@@ -895,11 +928,20 @@ async function main() {
 
   // Normalizes the repeatable-field JSON the admin form sends for an event
   // (speakers/gallery/videos/faqs), converting Drive/YouTube links server-side.
-  function normalizeEventExtras(body) {
+  // For non-embeddable video platforms (LinkedIn/Instagram/web) it also fetches
+  // a preview thumbnail once here, at save time, so public pages stay fast.
+  async function normalizeEventExtras(body) {
     const speakers = Array.isArray(body.speakers) ? body.speakers : [];
     const gallery_photos = Array.isArray(body.gallery_photos) ? body.gallery_photos : [];
     const video_urls = Array.isArray(body.video_urls) ? body.video_urls : [];
     const faqs = Array.isArray(body.faqs) ? body.faqs : [];
+
+    const videos = await Promise.all(video_urls.filter(Boolean).map(async u => {
+      const c = classifyVideoUrl(u);
+      const preview = c.embedUrl ? null : await fetchLinkPreviewImage(u);
+      return { url: u, embed: c.embedUrl, platform: c.platform, preview };
+    }));
+
     return {
       speakers: JSON.stringify(speakers
         .filter(s => s && s.name)
@@ -907,18 +949,16 @@ async function main() {
       gallery_photos: JSON.stringify(gallery_photos
         .filter(Boolean)
         .map(u => googleDriveToDirectUrl(u))),
-      video_urls: JSON.stringify(video_urls
-        .filter(Boolean)
-        .map(u => { const c = classifyVideoUrl(u); return { url: u, embed: c.embedUrl, platform: c.platform }; })),
+      video_urls: JSON.stringify(videos),
       faqs: JSON.stringify(faqs.filter(f => f && f.q))
     };
   }
 
-  app.post('/api/admin/events', requireAdmin, (req, res) => {
+  app.post('/api/admin/events', requireAdmin, async (req, res) => {
     const { title, kicker, description, image_url, date_label, location, edition, partner, order_index,
             subtitle, event_date, registration_url } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
-    const extras = normalizeEventExtras(req.body);
+    const extras = await normalizeEventExtras(req.body);
     const r = db.prepare(
       `INSERT INTO events (title, kicker, description, image_url, date_label, location, edition, partner, order_index,
         subtitle, event_date, registration_url, speakers, gallery_photos, video_urls, faqs)
@@ -930,10 +970,10 @@ async function main() {
     res.json({ id: r.lastInsertRowid });
   });
 
-  app.put('/api/admin/events/:id', requireAdmin, (req, res) => {
+  app.put('/api/admin/events/:id', requireAdmin, async (req, res) => {
     const { title, kicker, description, image_url, date_label, location, edition, partner, order_index, active,
             subtitle, event_date, registration_url } = req.body;
-    const extras = normalizeEventExtras(req.body);
+    const extras = await normalizeEventExtras(req.body);
     db.prepare(
       `UPDATE events SET title=?, kicker=?, description=?, image_url=?, date_label=?, location=?, edition=?, partner=?, order_index=?, active=?,
         subtitle=?, event_date=?, registration_url=?, speakers=?, gallery_photos=?, video_urls=?, faqs=? WHERE id=?`
@@ -1287,7 +1327,9 @@ async function main() {
           return `<div class="video-card"><div class="video-frame"><iframe src="${esc(embedUrl)}" title="Event video" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen loading="lazy"></iframe></div></div>`;
         }
         const meta = VIDEO_PLATFORM_META[platform] || VIDEO_PLATFORM_META.web;
-        return `<a class="video-card video-link-card ${meta.cls}" href="${esc(url)}" target="_blank" rel="noopener">` +
+        const preview = v && v.preview;
+        const style = preview ? ` style="background-image:linear-gradient(0deg, rgba(0,0,0,.55), rgba(0,0,0,.1) 55%), url('${esc(preview)}')"` : '';
+        return `<a class="video-card video-link-card ${meta.cls}${preview ? ' has-preview' : ''}" href="${esc(url)}" target="_blank" rel="noopener"${style}>` +
             `<span class="video-link-icon">${meta.icon}</span>` +
             `<span class="video-link-label">${esc(meta.label)}</span>` +
           `</a>`;
