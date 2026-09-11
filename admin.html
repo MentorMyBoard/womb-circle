@@ -80,6 +80,15 @@
     .form-section h3{font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:16px}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
     .form-row.single{grid-template-columns:1fr}
+    .repeat-section{margin-bottom:18px}
+    .repeat-section>label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
+    .repeat-row{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+    .repeat-row input,.repeat-row textarea{flex:1;padding:9px 11px;border:1.5px solid var(--line);border-radius:7px;font-family:inherit;font-size:.83rem;outline:none;color:var(--ink)}
+    .repeat-row input:focus,.repeat-row textarea:focus{border-color:var(--orange)}
+    .repeat-row textarea{min-height:44px;resize:vertical}
+    .repeat-row .rm-row{flex:0 0 auto;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:1rem;line-height:1}
+    .add-row-btn{background:var(--mist2);color:var(--navy);border:1.5px dashed var(--line);border-radius:7px;padding:8px 14px;font-size:.8rem;font-weight:600;cursor:pointer}
+    .add-row-btn:hover{border-color:var(--orange);color:var(--orange-deep)}
     .field label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
     .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;font-family:inherit;font-size:.875rem;outline:none;transition:border .2s;color:var(--ink);background:#fff}
     .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--orange)}
@@ -298,7 +307,7 @@
     <div id="tab-events" class="tab-content">
       <div class="page-header">
         <h1>Events</h1>
-        <button class="btn btn-primary" onclick="openModal('eventModal')">+ Add Event</button>
+        <button class="btn btn-primary" onclick="openAddEventModal()">+ Add Event</button>
       </div>
       <div id="eventsContainer"></div>
     </div>
@@ -520,15 +529,19 @@
 
 <!-- Event Modal -->
 <div class="modal-backdrop" id="eventModal">
-  <div class="modal">
+  <div class="modal" style="width:680px">
     <h3 id="eventModalTitle">Add Event</h3>
     <input type="hidden" id="ev-id">
     <div class="form-row">
       <div class="field"><label>Title *</label><input type="text" id="ev-title" placeholder="Event title"></div>
-      <div class="field"><label>Kicker / Tag</label><input type="text" id="ev-kicker" placeholder="e.g. Women Directors' Conclave 2025"></div>
+      <div class="field"><label>Subtitle</label><input type="text" id="ev-subtitle" placeholder="Short supporting line"></div>
     </div>
     <div class="form-row">
-      <div class="field"><label>Date / Period</label><input type="text" id="ev-date" placeholder="e.g. March 2025"></div>
+      <div class="field"><label>Kicker / Tag</label><input type="text" id="ev-kicker" placeholder="e.g. Women Directors' Conclave 2025"></div>
+      <div class="field"><label>Event Date</label><input type="date" id="ev-eventdate"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Date / Period (display label)</label><input type="text" id="ev-date" placeholder="e.g. March 2025"></div>
       <div class="field"><label>Location</label><input type="text" id="ev-location" placeholder="e.g. NSE, Mumbai"></div>
     </div>
     <div class="form-row">
@@ -536,17 +549,67 @@
       <div class="field"><label>Partner / Sponsor</label><input type="text" id="ev-partner" placeholder="e.g. Venue Partner: NSE"></div>
     </div>
     <div class="form-row single">
-      <div class="field"><label>Image URL</label><input type="url" id="ev-image" placeholder="https://..."></div>
+      <div class="field"><label>Thumbnail / Hero Image URL</label><input type="url" id="ev-image" placeholder="https://... or Google Drive share link"></div>
     </div>
     <div class="form-row single">
       <div class="field"><label>Description</label><textarea id="ev-desc" placeholder="Event description..."></textarea></div>
     </div>
+    <div class="form-row single">
+      <div class="field"><label>Registration URL</label><input type="url" id="ev-regurl" placeholder="https://... registration link"></div>
+    </div>
+
+    <div class="repeat-section">
+      <label>Key Speakers</label>
+      <div id="ev-speakers-list"></div>
+      <button type="button" class="add-row-btn" onclick="addSpeakerRow()">+ Add Speaker</button>
+    </div>
+
+    <div class="repeat-section">
+      <label>Event Photos (URLs)</label>
+      <div id="ev-photos-list"></div>
+      <button type="button" class="add-row-btn" onclick="addPhotoRow()">+ Add Photo</button>
+    </div>
+
+    <div class="repeat-section">
+      <label>Event Videos (YouTube Links)</label>
+      <div id="ev-videos-list"></div>
+      <button type="button" class="add-row-btn" onclick="addVideoRow()">+ Add Video</button>
+    </div>
+
+    <div class="repeat-section">
+      <label>FAQs</label>
+      <div id="ev-faqs-list"></div>
+      <button type="button" class="add-row-btn" onclick="addFaqRow()">+ Add FAQ</button>
+    </div>
+
     <div class="form-row">
       <div class="field"><label>Display Order (lower = first)</label><input type="number" id="ev-order" value="0"></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('eventModal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveEvent()">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- Success Story Modal -->
+<div class="modal-backdrop" id="storyModal">
+  <div class="modal">
+    <h3 id="storyModalTitle">Convert to Success Story</h3>
+    <input type="hidden" id="story-event-id">
+    <div class="form-row single">
+      <div class="field"><label>Success Title *</label><input type="text" id="story-title" placeholder="e.g. Women Shaping Viksit Bhaarat"></div>
+    </div>
+    <div class="form-row single">
+      <div class="field"><label>Success Description</label><textarea id="story-desc" placeholder="How the event went, outcomes, highlights..."></textarea></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Photo 1 URL</label><input type="url" id="story-photo1" placeholder="https://..."></div>
+      <div class="field"><label>Photo 2 URL</label><input type="url" id="story-photo2" placeholder="https://..."></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('storyModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSuccessStory()">Save Success Story</button>
     </div>
   </div>
 </div>
@@ -1001,9 +1064,12 @@
   }
 
   // ── Events ────────────────────────────────────────────────────────────────
+  let allEventsCache = [];
+
   async function loadEvents() {
     const data = await api('GET', '/api/admin/events');
     if (!data) return;
+    allEventsCache = data;
     const container = document.getElementById('eventsContainer');
     if (!data.length) {
       container.innerHTML = '<div class="empty"><p>No events yet. Click <strong>+ Add Event</strong> to create one.</p></div>';
@@ -1018,7 +1084,13 @@
           <div class="ev-actions">
             <button class="btn btn-ghost btn-sm" onclick="editEvent(${e.id})">Edit</button>
             <button class="btn btn-danger btn-sm" onclick="deleteEvent(${e.id})">Delete</button>
+            ${e.is_success_story
+              ? `<button class="btn btn-ghost btn-sm" onclick="openConvertModal(${e.id})">Edit Success Story</button>
+                 <button class="btn btn-ghost btn-sm" onclick="revertSuccessStory(${e.id})">Revert to Upcoming</button>`
+              : `<button class="btn btn-ghost btn-sm" onclick="openConvertModal(${e.id})">Convert to Success Story</button>`}
+            <a class="btn btn-ghost btn-sm" href="/events/${e.id}" target="_blank">View ↗</a>
             <span class="badge ${e.active ? 'badge-green' : 'badge-amber'}">${e.active ? 'Active' : 'Hidden'}</span>
+            ${e.is_success_story ? '<span class="badge badge-navy">Success Story</span>' : ''}
           </div>
         </div>
       </div>`).join('');
@@ -1029,22 +1101,100 @@
   function openModal(id) { document.getElementById(id).classList.add('open'); }
   function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
+  function openAddEventModal() {
+    editingEvent = null;
+    document.getElementById('eventModalTitle').textContent = 'Add Event';
+    document.getElementById('ev-id').value = '';
+    ['ev-title','ev-subtitle','ev-kicker','ev-eventdate','ev-date','ev-location','ev-edition','ev-partner','ev-image','ev-desc','ev-regurl'].forEach(f => document.getElementById(f).value = '');
+    document.getElementById('ev-order').value = 0;
+    clearRepeatRows();
+    openModal('eventModal');
+  }
+
+  // ── Repeatable rows: speakers / photos / videos / faqs ──────────────────
+  function repeatRow(container, fieldsHtml) {
+    const row = document.createElement('div');
+    row.className = 'repeat-row';
+    row.innerHTML = fieldsHtml + '<button type="button" class="rm-row" onclick="this.parentElement.remove()">&times;</button>';
+    container.appendChild(row);
+    return row;
+  }
+
+  function addSpeakerRow(name, title, photo) {
+    repeatRow(document.getElementById('ev-speakers-list'),
+      `<input type="text" placeholder="Name" class="sp-name" value="${(name || '').replace(/"/g, '&quot;')}">` +
+      `<input type="text" placeholder="Title / Role" class="sp-title" value="${(title || '').replace(/"/g, '&quot;')}">` +
+      `<input type="url" placeholder="Photo URL" class="sp-photo" value="${(photo || '').replace(/"/g, '&quot;')}">`);
+  }
+
+  function addPhotoRow(url) {
+    repeatRow(document.getElementById('ev-photos-list'),
+      `<input type="url" placeholder="Photo URL" class="ph-url" value="${(url || '').replace(/"/g, '&quot;')}">`);
+  }
+
+  function addVideoRow(url) {
+    repeatRow(document.getElementById('ev-videos-list'),
+      `<input type="url" placeholder="YouTube URL" class="vid-url" value="${(url || '').replace(/"/g, '&quot;')}">`);
+  }
+
+  function addFaqRow(q, a) {
+    repeatRow(document.getElementById('ev-faqs-list'),
+      `<input type="text" placeholder="Question" class="faq-q-input" value="${(q || '').replace(/"/g, '&quot;')}">` +
+      `<textarea placeholder="Answer" class="faq-a-input">${(a || '').replace(/</g, '&lt;')}</textarea>`);
+  }
+
+  function collectSpeakers() {
+    return [...document.querySelectorAll('#ev-speakers-list .repeat-row')].map(row => ({
+      name:  row.querySelector('.sp-name').value.trim(),
+      title: row.querySelector('.sp-title').value.trim(),
+      photo: row.querySelector('.sp-photo').value.trim()
+    })).filter(s => s.name);
+  }
+
+  function collectPhotos() {
+    return [...document.querySelectorAll('#ev-photos-list .repeat-row .ph-url')].map(i => i.value.trim()).filter(Boolean);
+  }
+
+  function collectVideos() {
+    return [...document.querySelectorAll('#ev-videos-list .repeat-row .vid-url')].map(i => i.value.trim()).filter(Boolean);
+  }
+
+  function collectFaqs() {
+    return [...document.querySelectorAll('#ev-faqs-list .repeat-row')].map(row => ({
+      q: row.querySelector('.faq-q-input').value.trim(),
+      a: row.querySelector('.faq-a-input').value.trim()
+    })).filter(f => f.q);
+  }
+
+  function clearRepeatRows() {
+    ['ev-speakers-list', 'ev-photos-list', 'ev-videos-list', 'ev-faqs-list'].forEach(id => document.getElementById(id).innerHTML = '');
+  }
+
   async function editEvent(id) {
-    const data = await api('GET', '/api/admin/events');
-    const ev = data?.find(e => e.id === id);
+    const ev = allEventsCache.find(e => e.id === id) || (await api('GET', '/api/admin/events'))?.find(e => e.id === id);
     if (!ev) return;
     editingEvent = id;
     document.getElementById('eventModalTitle').textContent = 'Edit Event';
     document.getElementById('ev-id').value = id;
     document.getElementById('ev-title').value = ev.title;
+    document.getElementById('ev-subtitle').value = ev.subtitle || '';
     document.getElementById('ev-kicker').value = ev.kicker || '';
+    document.getElementById('ev-eventdate').value = ev.event_date || '';
     document.getElementById('ev-date').value = ev.date_label || '';
     document.getElementById('ev-location').value = ev.location || '';
     document.getElementById('ev-edition').value = ev.edition || '';
     document.getElementById('ev-partner').value = ev.partner || '';
     document.getElementById('ev-image').value = ev.image_url || '';
     document.getElementById('ev-desc').value = ev.description || '';
+    document.getElementById('ev-regurl').value = ev.registration_url || '';
     document.getElementById('ev-order').value = ev.order_index || 0;
+
+    clearRepeatRows();
+    try { (JSON.parse(ev.speakers || '[]')).forEach(s => addSpeakerRow(s.name, s.title, s.photo)); } catch {}
+    try { (JSON.parse(ev.gallery_photos || '[]')).forEach(u => addPhotoRow(u)); } catch {}
+    try { (JSON.parse(ev.video_urls || '[]')).forEach(v => addVideoRow(v.url || v)); } catch {}
+    try { (JSON.parse(ev.faqs || '[]')).forEach(f => addFaqRow(f.q, f.a)); } catch {}
+
     openModal('eventModal');
   }
 
@@ -1052,15 +1202,22 @@
     const id = document.getElementById('ev-id').value;
     const body = {
       title:       document.getElementById('ev-title').value.trim(),
+      subtitle:    document.getElementById('ev-subtitle').value.trim(),
       kicker:      document.getElementById('ev-kicker').value.trim(),
+      event_date:  document.getElementById('ev-eventdate').value.trim(),
       date_label:  document.getElementById('ev-date').value.trim(),
       location:    document.getElementById('ev-location').value.trim(),
       edition:     document.getElementById('ev-edition').value.trim(),
       partner:     document.getElementById('ev-partner').value.trim(),
       image_url:   document.getElementById('ev-image').value.trim(),
       description: document.getElementById('ev-desc').value.trim(),
+      registration_url: document.getElementById('ev-regurl').value.trim(),
       order_index: parseInt(document.getElementById('ev-order').value) || 0,
-      active: 1
+      active: 1,
+      speakers: collectSpeakers(),
+      gallery_photos: collectPhotos(),
+      video_urls: collectVideos(),
+      faqs: collectFaqs()
     };
     if (!body.title) { showToast('Title is required', true); return; }
     const res = id
@@ -1071,8 +1228,9 @@
       document.getElementById('ev-id').value = '';
       editingEvent = null;
       document.getElementById('eventModalTitle').textContent = 'Add Event';
-      ['ev-title','ev-kicker','ev-date','ev-location','ev-edition','ev-partner','ev-image','ev-desc'].forEach(f => document.getElementById(f).value = '');
+      ['ev-title','ev-subtitle','ev-kicker','ev-eventdate','ev-date','ev-location','ev-edition','ev-partner','ev-image','ev-desc','ev-regurl'].forEach(f => document.getElementById(f).value = '');
       document.getElementById('ev-order').value = 0;
+      clearRepeatRows();
       loadEvents();
       showToast('Event saved!');
     }
@@ -1083,6 +1241,43 @@
     await api('DELETE', '/api/admin/events/' + id);
     loadEvents();
     showToast('Event removed');
+  }
+
+  // ── Success Story conversion ─────────────────────────────────────────────
+  function openConvertModal(id) {
+    const ev = allEventsCache.find(e => e.id === id);
+    if (!ev) return;
+    document.getElementById('story-event-id').value = id;
+    document.getElementById('storyModalTitle').textContent = ev.is_success_story ? 'Edit Success Story' : 'Convert to Success Story';
+    document.getElementById('story-title').value = ev.success_title || ev.title || '';
+    document.getElementById('story-desc').value = ev.success_description || '';
+    document.getElementById('story-photo1').value = ev.success_photo1 || '';
+    document.getElementById('story-photo2').value = ev.success_photo2 || '';
+    openModal('storyModal');
+  }
+
+  async function saveSuccessStory() {
+    const id = document.getElementById('story-event-id').value;
+    const body = {
+      success_title:       document.getElementById('story-title').value.trim(),
+      success_description: document.getElementById('story-desc').value.trim(),
+      success_photo1:       document.getElementById('story-photo1').value.trim(),
+      success_photo2:       document.getElementById('story-photo2').value.trim()
+    };
+    if (!body.success_title) { showToast('Success title is required', true); return; }
+    const res = await api('POST', `/api/admin/events/${id}/success-story`, body);
+    if (res?.success) {
+      closeModal('storyModal');
+      loadEvents();
+      showToast('Converted to success story!');
+    }
+  }
+
+  async function revertSuccessStory(id) {
+    if (!confirm('Move this back to Upcoming Events?')) return;
+    await api('DELETE', `/api/admin/events/${id}/success-story`);
+    loadEvents();
+    showToast('Reverted to upcoming event');
   }
 
   // ── Google Drive URL converter (mirrors server-side logic) ───────────────

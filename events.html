@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png">
+
+  <title>Events &amp; Success Stories | WOMB Circle</title>
+  <meta name="description" content="Upcoming WOMB Circle events — conclaves, industry visits and leadership gatherings for India's women directors, Independent Directors and CXOs — plus success stories from past editions.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://mmbwombcircle.com/events">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="WOMB Circle">
+  <meta property="og:url" content="https://mmbwombcircle.com/events">
+  <meta property="og:title" content="Events &amp; Success Stories | WOMB Circle">
+  <meta property="og:description" content="Upcoming WOMB Circle events and success stories from past conclaves, industry visits and leadership gatherings.">
+  <meta property="og:image" content="https://mmbwombcircle.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Manrope:wght@300;400;500;600;700;800&display=swap">
+
+  <style>
+    :root {
+      --orange: #f99f1b;
+      --orange-soft: #fdebcf;
+      --orange-deep: #e08c0a;
+      --navy: #191970;
+      --navy-deep: #101046;
+      --navy-tint: #2b2b8f;
+      --ink: #15154a;
+      --paper: #ffffff;
+      --mist: #f6f6fb;
+      --mist2: #eeeef6;
+      --line: #e2e2ee;
+      --muted: #5d5d7a;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box }
+    html { scroll-behavior: smooth }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Manrope', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { text-decoration: none; color: inherit }
+    img { display: block; max-width: 100% }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px }
+
+    h1, h2, h3, h4 { font-family: 'Fraunces', serif; font-weight: 600; color: var(--navy-deep) }
+
+    /* ── HEADER (same as homepage) ── */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      background: rgba(255, 255, 255, .9); backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line); transition: padding .3s;
+    }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 40px; max-width: 1320px; margin: 0 auto }
+    .nav-logo img { height: 46px; width: auto }
+    .nav-links { display: flex; gap: 30px; align-items: center; list-style: none }
+    .nav-links a { font-size: .82rem; font-weight: 600; letter-spacing: .02em; color: var(--ink); transition: color .25s }
+    .nav-links a:hover { color: var(--orange-deep) }
+    .nav-cta { display: flex; gap: 12px; align-items: center }
+    .btn {
+      font-family: 'Manrope', sans-serif; font-weight: 700; font-size: .8rem; letter-spacing: .03em;
+      padding: 11px 22px; border-radius: 40px; cursor: pointer; border: none; transition: all .28s;
+      display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    }
+    .btn-line { background: transparent; color: var(--navy); border: 1.5px solid var(--navy) }
+    .btn-line:hover { background: var(--navy); color: #fff }
+    .btn-fill { background: var(--orange); color: #fff; box-shadow: 0 6px 18px rgba(249, 159, 27, .32) }
+    .btn-fill:hover { background: var(--orange-deep); transform: translateY(-2px); box-shadow: 0 10px 26px rgba(249, 159, 27, .42) }
+    .menu-toggle { display: none; background: none; border: none; font-size: 1.6rem; color: var(--navy); cursor: pointer }
+
+    @media (max-width: 980px) {
+      .wrap { padding: 0 22px }
+      .nav { padding: 12px 22px }
+      .nav-links, .nav-cta { display: none }
+      .menu-toggle { display: block }
+      header.open .nav-links {
+        display: flex; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column;
+        background: #fff; padding: 18px 22px; gap: 16px; border-bottom: 1px solid var(--line);
+      }
+      header.open .nav-cta {
+        display: flex; position: absolute; top: 100%; left: 0; right: 0; margin-top: 170px;
+        flex-direction: column; background: #fff; padding: 0 22px 22px;
+      }
+      header.open .nav-cta .btn { width: 100%; justify-content: center }
+    }
+
+    /* ── HERO ── */
+    .ev-hero { background: linear-gradient(160deg, var(--navy-deep), var(--navy)); padding: 150px 0 56px; color: #fff }
+    .ev-hero .eyebrow { color: var(--orange); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase }
+    .ev-hero h1 { color: #fff; font-size: clamp(2rem, 4.5vw, 3.1rem); margin-top: 10px; line-height: 1.1 }
+    .ev-hero h1 em { color: var(--orange); font-style: normal }
+    .ev-hero p { color: rgba(255,255,255,.75); max-width: 640px; margin-top: 14px; font-size: 1.02rem; line-height: 1.6 }
+
+    /* ── SECTIONS ── */
+    .ev-section { padding: 64px 0 }
+    .ev-section-head { max-width: 680px; margin-bottom: 32px }
+    .ev-section-head .eyebrow { color: var(--orange-deep); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase }
+    .ev-section-head h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin-top: 8px }
+    .ev-section-head p { color: var(--muted); margin-top: 10px; line-height: 1.6 }
+
+    /* Upcoming Events cards */
+    .ev-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px }
+    @media (max-width: 900px) { .ev-grid { grid-template-columns: repeat(2, 1fr) } }
+    @media (max-width: 620px) { .ev-grid { grid-template-columns: 1fr } }
+    .evcard {
+      display: block; background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+      transition: transform .25s, box-shadow .25s;
+    }
+    .evcard:hover { transform: translateY(-4px); box-shadow: 0 16px 34px rgba(21,21,74,.1) }
+    .evcard-img { aspect-ratio: 4/3; background: var(--mist2); overflow: hidden }
+    .evcard-img img { width: 100%; height: 100%; object-fit: cover }
+    .evcard-body { padding: 18px 20px 22px }
+    .evcard-meta { font-size: .72rem; font-weight: 700; color: var(--orange-deep); letter-spacing: .03em; text-transform: uppercase; margin-bottom: 6px }
+    .evcard-body h3 { font-size: 1.15rem; line-height: 1.3; margin-bottom: 8px }
+    .evcard-body p { font-size: .88rem; color: var(--muted); line-height: 1.55; margin-bottom: 12px }
+    .evcard-link { font-size: .82rem; font-weight: 700; color: var(--navy) }
+    .ev-empty {
+      background: #fff; border: 1px dashed var(--line); border-radius: 14px; padding: 40px 24px;
+      text-align: center; color: var(--muted); font-size: .95rem;
+    }
+
+    /* Success Stories — same layout/classes as the homepage events showcase */
+    .events { background: linear-gradient(180deg, #fff, var(--mist)) }
+    .ev-block { margin-top: 56px }
+    .ev-block:first-child { margin-top: 0 }
+    .ev-block+.ev-block { margin-top: 80px }
+    .ev { display: grid; grid-template-columns: 1.25fr .75fr; gap: 30px; align-items: stretch }
+    .ev.rev { grid-template-columns: .75fr 1.25fr }
+    .ev-photo { border-radius: 20px; overflow: hidden; box-shadow: 0 30px 60px -34px rgba(25, 25, 112, .5); position: relative; background: var(--mist2) }
+    .ev-photo img { width: 100%; height: 100%; object-fit: cover }
+    .ev-photo .stamp {
+      position: absolute; top: 18px; left: 18px; background: var(--orange); color: #fff; font-weight: 700;
+      font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; padding: 8px 14px; border-radius: 8px;
+    }
+    .ev-side { display: flex; flex-direction: column; gap: 16px }
+    .ev-side .ev-photo { flex: 1 }
+    .ev-text { align-self: center }
+    .ev-text .kicker { font-size: .74rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--orange-deep); margin-bottom: 12px }
+    .ev-text h3 { font-family: 'Fraunces', serif; font-weight: 400; font-size: 2rem; line-height: 1.1; color: var(--navy); margin-bottom: 16px }
+    .ev-text p { font-size: .96rem; line-height: 1.75; color: var(--muted); margin-bottom: 14px }
+    .ev-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px }
+    .ev-meta span { font-size: .76rem; font-weight: 600; color: var(--navy); background: #fff; border: 1px solid var(--line); padding: 7px 13px; border-radius: 20px }
+    @media (max-width: 900px) { .ev, .ev.rev { grid-template-columns: 1fr } }
+
+    footer.ev-footer { background: var(--navy-deep); color: rgba(255,255,255,.5); text-align: center; padding: 22px; font-size: .8rem }
+    footer.ev-footer a { color: rgba(255,255,255,.8); font-weight: 600 }
+  </style>
+</head>
+
+<body>
+
+  <header id="hdr">
+    <div class="nav">
+      <a class="nav-logo" href="/"><img src="/womb-circle-logo.png" alt="WOMB Circle"></a>
+      <ul class="nav-links">
+        <li><a href="/#top100">Top 100</a></li>
+        <li><a href="/#about">About</a></li>
+        <li><a href="/#members">Members</a></li>
+        <li><a href="/#benefits">Why Join</a></li>
+        <li><a href="/events">Events</a></li>
+        <li><a href="/#photos">Media</a></li>
+        <li><a href="/#join">Membership</a></li>
+        <li><a href="/#mmb-ecosystem" style="color:var(--orange-deep)">Explore MMB</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a href="/womb-program" class="btn btn-line">WOMB Program</a>
+        <a href="https://rzp.io/rzp/mmbwombcircle" target="_blank" rel="noopener" class="btn btn-fill">Join WOMB Circle</a>
+      </div>
+      <button class="menu-toggle" onclick="document.getElementById('hdr').classList.toggle('open')">&#9776;</button>
+    </div>
+  </header>
+
+  <section class="ev-hero">
+    <div class="wrap">
+      <span class="eyebrow">Signature Engagements</span>
+      <h1>Where leaders <em>gather</em></h1>
+      <p>From flagship conclaves to immersive industry visits — explore what's coming up next, and revisit the moments that turned members into a movement.</p>
+    </div>
+  </section>
+
+  <!-- SSR_UPCOMING_SECTION -->
+
+  <!-- SSR_SUCCESS_SECTION -->
+
+  <footer class="ev-footer">
+    <p>WOMB™ Circle is an initiative by <a href="https://mentormyboard.com" target="_blank" rel="noopener">MentorMyBoard</a> &nbsp;|&nbsp; &copy; 2026 MentorMyBoard. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>

@@ -208,11 +208,25 @@ async function main() {
     key_secret: process.env.RAZORPAY_KEY_SECRET || ''
   });
 
-  // ── Load HTML template once (SSR replaces placeholders per request) ──────
-  const htmlTemplate = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+  // ── Load HTML templates once (SSR replaces placeholders per request) ─────
+  const htmlTemplate        = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+  const eventsHtmlTemplate  = fs.readFileSync(path.join(__dirname, 'events.html'), 'utf8');
+  const eventDetailTemplate = fs.readFileSync(path.join(__dirname, 'event-detail.html'), 'utf8');
 
   // ── Migrations (safe: ignore if column already exists) ───────────────────
   try { db._db.run('ALTER TABLE payments ADD COLUMN notes TEXT'); db._save(); } catch {}
+  try { db._db.run('ALTER TABLE events ADD COLUMN subtitle TEXT'); db._save(); } catch {}
+  try { db._db.run('ALTER TABLE events ADD COLUMN event_date TEXT'); db._save(); } catch {}
+  try { db._db.run('ALTER TABLE events ADD COLUMN registration_url TEXT'); db._save(); } catch {}
+  try { db._db.run("ALTER TABLE events ADD COLUMN speakers TEXT DEFAULT '[]'"); db._save(); } catch {}
+  try { db._db.run("ALTER TABLE events ADD COLUMN gallery_photos TEXT DEFAULT '[]'"); db._save(); } catch {}
+  try { db._db.run("ALTER TABLE events ADD COLUMN video_urls TEXT DEFAULT '[]'"); db._save(); } catch {}
+  try { db._db.run("ALTER TABLE events ADD COLUMN faqs TEXT DEFAULT '[]'"); db._save(); } catch {}
+  try { db._db.run('ALTER TABLE events ADD COLUMN is_success_story INTEGER DEFAULT 0'); db._save(); } catch {}
+  try { db._db.run('ALTER TABLE events ADD COLUMN success_title TEXT'); db._save(); } catch {}
+  try { db._db.run('ALTER TABLE events ADD COLUMN success_description TEXT'); db._save(); } catch {}
+  try { db._db.run('ALTER TABLE events ADD COLUMN success_photo1 TEXT'); db._save(); } catch {}
+  try { db._db.run('ALTER TABLE events ADD COLUMN success_photo2 TEXT'); db._save(); } catch {}
 
   // ── Middleware ────────────────────────────────────────────────────────────
   app.use(compression());
@@ -858,24 +872,80 @@ async function main() {
     res.json(db.prepare('SELECT * FROM events ORDER BY order_index ASC, id DESC').all());
   });
 
+  // Normalizes the repeatable-field JSON the admin form sends for an event
+  // (speakers/gallery/videos/faqs), converting Drive/YouTube links server-side.
+  function normalizeEventExtras(body) {
+    const speakers = Array.isArray(body.speakers) ? body.speakers : [];
+    const gallery_photos = Array.isArray(body.gallery_photos) ? body.gallery_photos : [];
+    const video_urls = Array.isArray(body.video_urls) ? body.video_urls : [];
+    const faqs = Array.isArray(body.faqs) ? body.faqs : [];
+    return {
+      speakers: JSON.stringify(speakers
+        .filter(s => s && s.name)
+        .map(s => ({ name: s.name, title: s.title || '', photo: googleDriveToDirectUrl(s.photo || '') }))),
+      gallery_photos: JSON.stringify(gallery_photos
+        .filter(Boolean)
+        .map(u => googleDriveToDirectUrl(u))),
+      video_urls: JSON.stringify(video_urls
+        .filter(Boolean)
+        .map(u => ({ url: u, embed: youtubeToEmbed(u) }))),
+      faqs: JSON.stringify(faqs.filter(f => f && f.q))
+    };
+  }
+
   app.post('/api/admin/events', requireAdmin, (req, res) => {
-    const { title, kicker, description, image_url, date_label, location, edition, partner, order_index } = req.body;
+    const { title, kicker, description, image_url, date_label, location, edition, partner, order_index,
+            subtitle, event_date, registration_url } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
+    const extras = normalizeEventExtras(req.body);
     const r = db.prepare(
-      'INSERT INTO events (title, kicker, description, image_url, date_label, location, edition, partner, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(title, kicker || '', description || '', image_url || '', date_label || '', location || '', edition || '', partner || '', order_index || 0);
+      `INSERT INTO events (title, kicker, description, image_url, date_label, location, edition, partner, order_index,
+        subtitle, event_date, registration_url, speakers, gallery_photos, video_urls, faqs)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      title, kicker || '', description || '', googleDriveToDirectUrl(image_url || ''), date_label || '', location || '', edition || '', partner || '', order_index || 0,
+      subtitle || '', event_date || '', registration_url || '', extras.speakers, extras.gallery_photos, extras.video_urls, extras.faqs
+    );
     res.json({ id: r.lastInsertRowid });
   });
 
   app.put('/api/admin/events/:id', requireAdmin, (req, res) => {
-    const { title, kicker, description, image_url, date_label, location, edition, partner, order_index, active } = req.body;
-    db.prepare('UPDATE events SET title=?, kicker=?, description=?, image_url=?, date_label=?, location=?, edition=?, partner=?, order_index=?, active=? WHERE id=?')
-      .run(title, kicker || '', description || '', image_url || '', date_label || '', location || '', edition || '', partner || '', order_index || 0, active ?? 1, req.params.id);
+    const { title, kicker, description, image_url, date_label, location, edition, partner, order_index, active,
+            subtitle, event_date, registration_url } = req.body;
+    const extras = normalizeEventExtras(req.body);
+    db.prepare(
+      `UPDATE events SET title=?, kicker=?, description=?, image_url=?, date_label=?, location=?, edition=?, partner=?, order_index=?, active=?,
+        subtitle=?, event_date=?, registration_url=?, speakers=?, gallery_photos=?, video_urls=?, faqs=? WHERE id=?`
+    ).run(
+      title, kicker || '', description || '', googleDriveToDirectUrl(image_url || ''), date_label || '', location || '', edition || '', partner || '', order_index || 0, active ?? 1,
+      subtitle || '', event_date || '', registration_url || '', extras.speakers, extras.gallery_photos, extras.video_urls, extras.faqs, req.params.id
+    );
     res.json({ success: true });
   });
 
   app.delete('/api/admin/events/:id', requireAdmin, (req, res) => {
     db.prepare('UPDATE events SET active=0 WHERE id=?').run(req.params.id);
+    res.json({ success: true });
+  });
+
+  // Success-story conversion: admin manually marks a finished event as a success story.
+  app.post('/api/admin/events/:id/success-story', requireAdmin, (req, res) => {
+    const row = db.prepare('SELECT id FROM events WHERE id=?').get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    const { success_title, success_description, success_photo1, success_photo2 } = req.body;
+    if (!success_title) return res.status(400).json({ error: 'success_title required' });
+    db.prepare(
+      `UPDATE events SET is_success_story=1, success_title=?, success_description=?, success_photo1=?, success_photo2=? WHERE id=?`
+    ).run(
+      success_title, success_description || '',
+      googleDriveToDirectUrl(success_photo1 || ''), googleDriveToDirectUrl(success_photo2 || ''),
+      req.params.id
+    );
+    res.json({ success: true });
+  });
+
+  app.delete('/api/admin/events/:id/success-story', requireAdmin, (req, res) => {
+    db.prepare('UPDATE events SET is_success_story=0 WHERE id=?').run(req.params.id);
     res.json({ success: true });
   });
 
@@ -1074,9 +1144,191 @@ async function main() {
     ).join('\n');
   }
 
+  // ── Events / Success Stories SSR render helpers ───────────────────────────
+  function excerpt(text, len) {
+    const s = String(text || '').trim();
+    return s.length > len ? s.slice(0, len).trim() + '…' : s;
+  }
+
+  function eventMetaLine(e) {
+    return [e.kicker, e.date_label, e.location].filter(Boolean).map(esc).join(' &middot; ');
+  }
+
+  function renderEventCard(e) {
+    return `<a class="evcard" href="/events/${e.id}">` +
+        `<div class="evcard-img">${e.image_url ? `<img src="${esc(e.image_url)}" alt="${esc(e.title)}" loading="lazy">` : ''}</div>` +
+        `<div class="evcard-body">` +
+          (eventMetaLine(e) ? `<div class="evcard-meta">${eventMetaLine(e)}</div>` : '') +
+          `<h3>${esc(e.title)}</h3>` +
+          (e.description ? `<p>${esc(excerpt(e.description, 140))}</p>` : '') +
+          `<span class="evcard-link">View Details &rarr;</span>` +
+        `</div>` +
+      `</a>`;
+  }
+
+  // Whole section (heading + grid) — omitted entirely from the page when there are no upcoming events.
+  function renderUpcomingSection(events) {
+    if (!events.length) return '';
+    return `<section class="ev-section" id="upcoming"><div class="wrap">` +
+        `<div class="ev-section-head">` +
+          `<span class="eyebrow">What's Next</span>` +
+          `<h2>Upcoming Events</h2>` +
+          `<p>Curated conclaves, industry visits and leadership gatherings for WOMB Circle members.</p>` +
+        `</div>` +
+        `<div class="ev-grid">${events.map(renderEventCard).join('\n')}</div>` +
+      `</div></section>`;
+  }
+
+  // Success stories reuse the homepage's own alternating .ev-block showcase layout — not clickable.
+  function renderSuccessStoryBlock(e, index) {
+    const title = esc(e.success_title || e.title);
+    const desc  = e.success_description || e.description;
+    const kicker = e.kicker ? esc(e.kicker) : '';
+    const photo1 = e.success_photo1 || e.image_url;
+    const photo2 = e.success_photo2 || '';
+    const meta = [e.edition, e.partner, e.location].filter(Boolean).map(esc);
+    const mainPhoto = `<div class="ev-photo"><span class="stamp">Success Story</span>${photo1 ? `<img src="${esc(photo1)}" alt="${title}" loading="lazy">` : ''}</div>`;
+    const sidePhoto = `<div class="ev-photo">${photo2 ? `<img src="${esc(photo2)}" alt="${title}" loading="lazy">` : ''}</div>`;
+    const text = `<div class="ev-text">` +
+        (kicker ? `<div class="kicker">${kicker}</div>` : '') +
+        `<h3>${title}</h3>` +
+        (desc ? `<p>${esc(desc)}</p>` : '') +
+        (meta.length ? `<div class="ev-meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>` : '') +
+      `</div>`;
+    const reversed = index % 2 === 1;
+    return `<div class="ev-block"><div class="ev${reversed ? ' rev' : ''}">` +
+        (reversed
+          ? `<div class="ev-side">${sidePhoto}${text}</div>${mainPhoto}`
+          : `${mainPhoto}<div class="ev-side">${sidePhoto}${text}</div>`) +
+      `</div></div>`;
+  }
+
+  function renderSuccessSection(events) {
+    const body = events.length
+      ? events.map(renderSuccessStoryBlock).join('\n')
+      : '<div class="ev-empty">Success stories from our events will appear here soon.</div>';
+    return `<section class="ev-section events" id="stories"><div class="wrap">` +
+        `<div class="ev-section-head">` +
+          `<span class="eyebrow">Looking Back</span>` +
+          `<h2>Success Stories</h2>` +
+          `<p>Highlights and outcomes from events WOMB Circle has already hosted.</p>` +
+        `</div>` +
+        body +
+      `</div></section>`;
+  }
+
+  function safeParseArray(json) {
+    try { const v = JSON.parse(json || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+  }
+
+  function renderSpeakers(json) {
+    const speakers = safeParseArray(json);
+    if (!speakers.length) return '';
+    return `<section class="ed-section"><h2>Key Speakers</h2><div class="speaker-grid">` +
+      speakers.map(s =>
+        `<div class="speaker-card">` +
+          (s.photo ? `<img src="${esc(s.photo)}" alt="${esc(s.name)}">` : `<div class="speaker-avatar">${esc((s.name || '?').charAt(0))}</div>`) +
+          `<h4>${esc(s.name)}</h4>` +
+          (s.title ? `<p>${esc(s.title)}</p>` : '') +
+        `</div>`
+      ).join('\n') +
+      `</div></section>`;
+  }
+
+  function renderEventGallery(json) {
+    const photos = safeParseArray(json);
+    if (!photos.length) return '';
+    return `<section class="ed-section"><h2>Photos</h2><div class="gallery-grid">` +
+      photos.map(url =>
+        `<div class="gallery-item" onclick="openLightbox('${esc(url)}')"><img src="${esc(url)}" alt="Event photo" loading="lazy"></div>`
+      ).join('\n') +
+      `</div></section>`;
+  }
+
+  function renderEventVideos(json) {
+    const videos = safeParseArray(json);
+    if (!videos.length) return '';
+    return `<section class="ed-section"><h2>Videos</h2><div class="video-grid">` +
+      videos.map(v =>
+        `<div class="video-card"><div class="video-frame"><iframe src="${esc(v.embed)}" title="Event video" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen loading="lazy"></iframe></div></div>`
+      ).join('\n') +
+      `</div></section>`;
+  }
+
+  function renderFAQs(json) {
+    const faqs = safeParseArray(json);
+    if (!faqs.length) return '';
+    return `<section class="ed-section"><h2>FAQs</h2><div class="faq-list">` +
+      faqs.map((f, i) =>
+        `<div class="faq-item${i === 0 ? ' open' : ''}">` +
+          `<div class="faq-q" onclick="toggleFaq(this)"><span>${esc(f.q)}</span><span class="faq-icon">+</span></div>` +
+          `<div class="faq-a">${esc(f.a)}</div>` +
+        `</div>`
+      ).join('\n') +
+      `</div></section>`;
+  }
+
+  function renderSuccessBlock(e) {
+    if (!e.is_success_story) return '';
+    const photos = [e.success_photo1, e.success_photo2].filter(Boolean);
+    return `<section class="ed-section success-block">` +
+        `<span class="story-badge">Success Story</span>` +
+        `<h2>${esc(e.success_title || e.title)}</h2>` +
+        (e.success_description ? `<p>${esc(e.success_description)}</p>` : '') +
+        (photos.length ? `<div class="success-photos">${photos.map(p => `<img src="${esc(p)}" alt="${esc(e.success_title || e.title)}">`).join('')}</div>` : '') +
+      `</section>`;
+  }
+
+  function renderRegisterButton(e) {
+    if (e.is_success_story || !e.registration_url) return '';
+    return `<a class="btn btn-orange" href="${esc(e.registration_url)}" target="_blank" rel="noopener">Register Now &rarr;</a>`;
+  }
+
   // ── Page routes ───────────────────────────────────────────────────────────
   app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin.html')));
   app.get('/womb-program', (_, res) => res.sendFile(path.join(__dirname, 'womb-program.html')));
+
+  app.get('/events', (_, res) => {
+    const upcoming = db.prepare('SELECT * FROM events WHERE active=1 AND is_success_story=0 ORDER BY order_index ASC, id DESC').all();
+    const stories  = db.prepare('SELECT * FROM events WHERE active=1 AND is_success_story=1 ORDER BY order_index ASC, id DESC').all();
+    const html = eventsHtmlTemplate
+      .replace('<!-- SSR_UPCOMING_SECTION -->', renderUpcomingSection(upcoming))
+      .replace('<!-- SSR_SUCCESS_SECTION -->', renderSuccessSection(stories));
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send(html);
+  });
+
+  app.get('/events/:id', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const e = Number.isInteger(id) ? db.prepare('SELECT * FROM events WHERE id=? AND active=1').get(id) : null;
+    if (!e) return res.redirect('/events');
+
+    const title = esc(e.title);
+    const subtitle = esc(e.subtitle || '');
+    const desc = esc(e.description || '');
+    const ogDesc = esc(excerpt(e.description || e.title, 160));
+    const heroImg = esc(e.image_url || '/og-image.png');
+
+    const html = eventDetailTemplate
+      .replace(/<!-- SSR_TITLE -->/g, title)
+      .replace(/<!-- SSR_OG_DESCRIPTION -->/g, ogDesc)
+      .replace(/<!-- SSR_OG_IMAGE -->/g, heroImg)
+      .replace(/<!-- SSR_HERO_IMAGE -->/g, heroImg)
+      .replace('<!-- SSR_SUBTITLE -->', subtitle ? `<p class="ed-subtitle">${subtitle}</p>` : '')
+      .replace('<!-- SSR_META -->', eventMetaLine(e) ? `<div class="ed-meta">${eventMetaLine(e)}</div>` : '')
+      .replace('<!-- SSR_DESCRIPTION -->', desc ? `<p class="ed-desc">${desc}</p>` : '')
+      .replace('<!-- SSR_REGISTER_BUTTON -->', renderRegisterButton(e))
+      .replace('<!-- SSR_SPEAKERS -->', renderSpeakers(e.speakers))
+      .replace('<!-- SSR_GALLERY -->', renderEventGallery(e.gallery_photos))
+      .replace('<!-- SSR_VIDEOS -->', renderEventVideos(e.video_urls))
+      .replace('<!-- SSR_FAQS -->', renderFAQs(e.faqs))
+      .replace('<!-- SSR_SUCCESS_BLOCK -->', renderSuccessBlock(e));
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send(html);
+  });
 
   // Homepage — SSR injects photos & videos so Googlebot indexes real content
   app.get('/', (_, res) => {
@@ -1176,6 +1428,7 @@ async function main() {
     res.send(
 `User-agent: *
 Allow: /
+Allow: /events
 Allow: /api/events
 Allow: /api/photos
 Allow: /api/videos
@@ -1191,6 +1444,14 @@ Sitemap: ${SITE_URL}/sitemap.xml`
   // ── sitemap.xml ───────────────────────────────────────────────────────────
   app.get('/sitemap.xml', (_, res) => {
     const today = new Date().toISOString().split('T')[0];
+    const eventIds = db.prepare('SELECT id FROM events WHERE active=1').all();
+    const eventUrls = eventIds.map(e => `
+  <url>
+    <loc>${SITE_URL}/events/${e.id}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>`).join('');
     res.setHeader('Content-Type', 'application/xml');
     res.send(
 `<?xml version="1.0" encoding="UTF-8"?>
@@ -1201,6 +1462,12 @@ Sitemap: ${SITE_URL}/sitemap.xml`
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
+  <url>
+    <loc>${SITE_URL}/events</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>${eventUrls}
 </urlset>`
     );
   });
